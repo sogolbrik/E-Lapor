@@ -24,7 +24,8 @@
     </style>
 </head>
 
-<body class="min-h-screen font-['Poppins'] text-slate-800 antialiased bg-slate-50 flex flex-col selection:bg-blue-500 selection:text-white">
+<body
+    class="min-h-screen font-['Poppins'] text-slate-800 antialiased bg-slate-50 flex flex-col selection:bg-blue-500 selection:text-white">
 
     <x-partials.toast />
 
@@ -32,12 +33,10 @@
     <div x-data="{ sidebarOpen: false }" class="min-h-screen w-full bg-slate-50 flex flex-col flex-1 relative">
 
         {{-- Mobile Overlay --}}
-        <div x-show="sidebarOpen" x-cloak
-            x-transition:enter="transition-opacity ease-linear duration-200"
+        <div x-show="sidebarOpen" x-cloak x-transition:enter="transition-opacity ease-linear duration-200"
             x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-            x-transition:leave="transition-opacity ease-linear duration-200"
-            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-            @click="sidebarOpen = false"
+            x-transition:leave="transition-opacity ease-linear duration-200" x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0" @click="sidebarOpen = false"
             class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden">
         </div>
 
@@ -71,17 +70,12 @@
                             <span>Dashboard</span>
                         </a>
 
-                        <a href="#"
+                        <a href="{{ route('admin.user.index') }}"
                             class="{{ request()->routeIs('admin.warga.*') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }} group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition">
                             <i class="fa-solid fa-users w-5 text-center text-base"></i>
-                            <span>Manajemen Warga</span>
+                            <span>Manajemen User</span>
                         </a>
-
-                        <a href="#"
-                            class="{{ request()->routeIs('admin.petugas.*') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }} group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition">
-                            <i class="fa-solid fa-user-shield w-5 text-center text-base"></i>
-                            <span>Manajemen Petugas</span>
-                        </a>
+                        
                         <a href="#"
                             class="{{ request()->routeIs('admin.desa.*') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }} group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition">
                             <i class="fa-solid fa-location-dot w-5 text-center text-base"></i>
@@ -118,7 +112,8 @@
                         A
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-semibold text-slate-700">{{ auth()->user()->name ?? 'Administrator' }}</p>
+                        <p class="truncate text-sm font-semibold text-slate-700">
+                            {{ auth()->user()->name ?? 'Administrator' }}</p>
                         <p class="truncate text-xs text-slate-400">{{ auth()->user()->role ?? 'Admin' }}</p>
                     </div>
                     @if (Route::has('logout'))
@@ -159,7 +154,8 @@
                     <button type="button" title="Notifikasi"
                         class="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 focus:outline-none">
                         <i class="fa-regular fa-bell text-lg"></i>
-                        <span class="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                        <span
+                            class="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
                     </button>
 
                     {{-- User Dropdown --}}
@@ -171,29 +167,30 @@
                                 A
                             </div>
                             <div class="hidden text-left sm:block">
-                                <p class="text-xs font-semibold text-slate-700 leading-tight">{{ auth()->user()->name ?? 'Administrator' }}</p>
-                                <p class="text-[11px] text-slate-400 font-medium">{{ auth()->user()->role ?? 'Admin' }}</p>
+                                <p class="text-xs font-semibold text-slate-700 leading-tight">
+                                    {{ auth()->user()->name ?? 'Administrator' }}</p>
+                                <p class="text-[11px] text-slate-400 font-medium">{{ auth()->user()->role ?? 'Admin' }}
+                                </p>
                             </div>
                             <i class="fa-solid fa-chevron-down hidden text-xs text-slate-400 sm:block transition-transform duration-200"
                                 :class="dropdownOpen ? 'rotate-180' : ''"></i>
                         </button>
 
                         {{-- Dropdown Menu --}}
-                        <div x-show="dropdownOpen" x-cloak
-                            x-transition:enter="transition ease-out duration-150"
-                            x-transition:enter-start="opacity-0 scale-95"
-                            x-transition:enter-end="opacity-100 scale-100"
+                        <div x-show="dropdownOpen" x-cloak x-transition:enter="transition ease-out duration-150"
+                            x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                             x-transition:leave="transition ease-in duration-100"
-                            x-transition:leave-start="opacity-100 scale-100"
-                            x-transition:leave-end="opacity-0 scale-95"
+                            x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
                             class="absolute right-0 mt-2 w-48 origin-top-right rounded-2xl border border-slate-100 bg-white p-2 shadow-xl ring-1 ring-slate-900/5 focus:outline-none z-50">
-                            
+
                             <div class="px-3 py-2 border-b border-slate-100 sm:hidden">
-                                <p class="text-xs font-semibold text-slate-700">{{ auth()->user()->name ?? 'Administrator' }}</p>
+                                <p class="text-xs font-semibold text-slate-700">
+                                    {{ auth()->user()->name ?? 'Administrator' }}</p>
                                 <p class="text-[11px] text-slate-400">{{ auth()->user()->Role ?? 'Admin' }}</p>
                             </div>
 
-                            <a href="#" class="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition">
+                            <a href="#"
+                                class="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition">
                                 <i class="fa-solid fa-user-gear w-4 text-center"></i>
                                 <span>Profil Saya</span>
                             </a>
@@ -229,4 +226,3 @@
 </body>
 
 </html>
-

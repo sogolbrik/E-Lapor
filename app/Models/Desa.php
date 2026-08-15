@@ -10,5 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 #[Guarded(['id'])]
 class Desa extends Model
 {
-    //
+    public function user(){
+        return $this->hasMany(User::class);
+    }
 }

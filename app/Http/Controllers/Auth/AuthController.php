@@ -49,12 +49,12 @@ class AuthController extends Controller
             'password.required' => 'Kata sandi wajib diisi.',
             'password.min' => 'Kata sandi minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
-            'desa_id.required' => 'Wilayah wajib dipilih.',
+            'desa_id.required' => 'Desa wajib dipilih.',
         ]);
 
         User::create($validate);
 
-        return redirect()->route('login')->with('status', 'Pendaftaran berhasil! Silakan masuk ke akun Anda.');
+        return redirect()->intended('/warga/dashboard')->with('status', 'Pendaftaran berhasil! Selamat datang di aplikasi.');
     }
 
     /**
@@ -77,11 +77,11 @@ class AuthController extends Controller
             $user = Auth::user();
             $redirectRoute = '/';
             if ($user->role === 'Admin') {
-                $redirectRoute = '/admin-dashboard';
-            // } elseif ($user->role === 'Petugas') {
-            //     $redirectRoute = '/b';
-            // } elseif ($user->role === 'warga') {
-            //     $redirectRoute = '/c';
+                $redirectRoute = '/admin/dashboard';
+                // } elseif ($user->role === 'Petugas') {
+                //     $redirectRoute = '/b';
+            } elseif ($user->role === 'warga') {
+                $redirectRoute = '/warga/dashboard';
             }
             return redirect()->intended($redirectRoute)->with('success', 'Selamat datang kembali, ' . $user->name . '!');
         }
@@ -101,6 +101,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')->with('status', 'Anda telah berhasil keluar.');
+        return redirect()->route('home')->with('status', 'Anda telah berhasil keluar.');
     }
 }

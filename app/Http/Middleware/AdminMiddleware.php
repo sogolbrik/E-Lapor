@@ -19,7 +19,7 @@ class AdminMiddleware
             return redirect()->route('login');
         }
 
-        if ($request->user()->role !== 'admin') {
+        if ($request->user()->role !== 'Admin') {
             abort(403, 'Anda tidak memiliki akses ke halaman administrator.');
         }
         return $next($request);
