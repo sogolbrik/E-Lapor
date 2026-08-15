@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Desa;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +24,9 @@ class AuthController extends Controller
      */
     public function register()
     {
-        return view("auth.register");
+        return view("auth.register", [
+            'desa' => Desa::get()
+        ]);
     }
 
     /**
@@ -52,7 +55,11 @@ class AuthController extends Controller
             'desa_id.required' => 'Desa wajib dipilih.',
         ]);
 
-        User::create($validate);
+        $user = User::create($validate);
+
+        Auth::login($user);
+
+        $request->session()->regenerate();
 
         return redirect()->intended('/warga/dashboard')->with('status', 'Pendaftaran berhasil! Selamat datang di aplikasi.');
     }

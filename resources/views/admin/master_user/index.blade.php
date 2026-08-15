@@ -95,11 +95,21 @@
 
     {{-- Main Data Section --}}
     <div class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/60 min-w-0" x-data="{
-        modalTambah: false,
-        modalEdit: false,
+        modalTambah: {{ $errors->any() && !old('_method') ? 'true' : 'false' }},
+        modalEdit: {{ $errors->any() && old('_method') == 'PUT' ? 'true' : 'false' }},
         modalStatus: false,
         modalHapus: false,
-        selectedUser: null,
+        selectedUser: {{ old('_method') == 'PUT'
+            ? json_encode([
+                'id' => old('user_id'),
+                'nik' => old('nik'),
+                'name' => old('name'),
+                'email' => old('email'),
+                'no_hp' => old('no_hp'),
+                'role' => old('role'),
+                'desa_id' => old('desa_id'),
+            ])
+            : 'null' }},
         actionType: ''
     }"
         @open-modal-tambah.window="modalTambah = true">
@@ -111,34 +121,45 @@
                 <p class="mt-1 text-xs text-slate-400">Menampilkan seluruh data User terdaftar di sistem</p>
             </div>
 
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <form action="{{ route('admin.user.index') }}" method="GET"
+                class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 {{-- Search Bar --}}
                 <div class="relative min-w-60">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
                         <i class="fa-solid fa-magnifying-glass text-xs"></i>
                     </span>
-                    <input type="text" placeholder="Cari NIK, Nama, No. HP..."
+                    <input type="text" name="search" value="{{ request('search') }}"
+                        placeholder="Cari NIK, Nama, No. HP..."
                         class="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-2 text-xs text-slate-700 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
                 </div>
 
                 {{-- Filter Desa --}}
-                <select
+                <select name="desa_id" onchange="this.form.submit()"
                     class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
                     <option value="">Semua Desa</option>
-                    <option value="sukamaju">Desa Sukamaju</option>
-                    <option value="harapan">Desa Harapan</option>
-                    <option value="makmur">Desa Makmur</option>
-                    <option value="sejahtera">Desa Sejahtera</option>
+                    @foreach ($desa as $item)
+                        <option value="{{ $item->id }}" {{ request('desa_id') == $item->id ? 'selected' : '' }}>
+                            {{ $item->nama }}
+                        </option>
+                    @endforeach
                 </select>
 
                 {{-- Filter Status --}}
-                <select
+                <select name="status" onchange="this.form.submit()"
                     class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
                     <option value="">Semua Status</option>
-                    <option value="aktif">Aktif</option>
-                    <option value="nonaktif">Nonaktif</option>
+                    <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Aktif</option>
+                    <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Nonaktif</option>
                 </select>
-            </div>
+
+                {{-- Tombol Reset (Opsional: Muncul saat ada filter aktif) --}}
+                @if (request()->hasAny(['search', 'desa_id', 'status']))
+                    <a href="{{ route('admin.user.index') }}"
+                        class="flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 transition">
+                        <i class="fa-solid fa-rotate-left mr-1.5"></i> Reset
+                    </a>
+                @endif
+            </form>
         </div>
 
         {{-- Table Scroll Container --}}
@@ -268,31 +289,71 @@
         </div>
 
         {{-- Pagination --}}
-        <div
-            class="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 pt-4 text-xs text-slate-500">
-            <p>Menampilkan <span class="font-semibold text-slate-700">1</span> sampai <span
-                    class="font-semibold text-slate-700">5</span> dari <span
-                    class="font-semibold text-slate-700">2,845</span> user</p>
-            <div class="flex items-center gap-1">
-                <button type="button" disabled
-                    class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition">
-                    Sebelumnya
-                </button>
-                <button type="button"
-                    class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white shadow-sm transition">1</button>
-                <button type="button"
-                    class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 transition">2</button>
-                <button type="button"
-                    class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 transition">3</button>
-                <span class="px-1 text-slate-400">...</span>
-                <button type="button"
-                    class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 transition">570</button>
-                <button type="button"
-                    class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 transition">
-                    Selanjutnya
-                </button>
+        @if ($user->hasPages())
+            <div
+                class="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 pt-4 text-xs text-slate-500">
+                {{-- Informasi Data --}}
+                <p>
+                    Menampilkan <span class="font-semibold text-slate-700">{{ $user->firstItem() ?? 0 }}</span>
+                    sampai <span class="font-semibold text-slate-700">{{ $user->lastItem() ?? 0 }}</span>
+                    dari <span class="font-semibold text-slate-700">{{ number_format($user->total()) }}</span> user
+                </p>
+
+                {{-- Navigasi Tombol --}}
+                <div class="flex items-center gap-1">
+                    {{-- Tombol Sebelumnya --}}
+                    @if ($user->onFirstPage())
+                        <button type="button" disabled
+                            class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                            Sebelumnya
+                        </button>
+                    @else
+                        <a href="{{ $user->previousPageUrl() }}"
+                            class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 transition">
+                            Sebelumnya
+                        </a>
+                    @endif
+
+                    {{-- Nomor Halaman --}}
+                    @foreach ($user->links()->elements as $element)
+                        {{-- String "Three Dots" (...) --}}
+                        @if (is_string($element))
+                            <span class="px-1 text-slate-400">{{ $element }}</span>
+                        @endif
+
+                        {{-- Array Link Nomor Halaman --}}
+                        @if (is_array($element))
+                            @foreach ($element as $page => $url)
+                                @if ($page == $user->currentPage())
+                                    <button type="button"
+                                        class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white shadow-sm transition">
+                                        {{ $page }}
+                                    </button>
+                                @else
+                                    <a href="{{ $url }}"
+                                        class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 transition">
+                                        {{ $page }}
+                                    </a>
+                                @endif
+                            @endforeach
+                        @endif
+                    @endforeach
+
+                    {{-- Tombol Selanjutnya --}}
+                    @if ($user->hasMorePages())
+                        <a href="{{ $user->nextPageUrl() }}"
+                            class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-50 transition">
+                            Selanjutnya
+                        </a>
+                    @else
+                        <button type="button" disabled
+                            class="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                            Selanjutnya
+                        </button>
+                    @endif
+                </div>
             </div>
-        </div>
+        @endif
 
         {{-- MODAL: Tambah User --}}
         <div x-show="modalTambah" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title"
@@ -309,12 +370,15 @@
                     x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
                     x-transition:leave-end="opacity-0 scale-95"
                     class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+
                     <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                         <h3 class="text-base font-bold text-slate-800">Tambah Data User</h3>
                         <button type="button" @click="modalTambah = false"
-                            class="text-slate-400 hover:text-slate-600 transition"><i
-                                class="fa-solid fa-xmark text-lg"></i></button>
+                            class="text-slate-400 hover:text-slate-600 transition">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
                     </div>
+
                     <form action="{{ route('admin.user.store') }}" method="POST" class="p-6 space-y-4">
                         @csrf
 
@@ -323,64 +387,88 @@
                                 Kependudukan)</label>
                             <input type="text" name="nik" value="{{ old('nik') }}"
                                 placeholder="Masukkan 16 digit NIK"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                required />
+                                class="w-full rounded-xl border @error('nik') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+                            @error('nik')
+                                <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                            @enderror
                         </div>
+
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap</label>
                             <input type="text" name="name" value="{{ old('name') }}"
                                 placeholder="Masukkan nama lengkap user"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                required />
+                                class="w-full rounded-xl border @error('name') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+                            @error('name')
+                                <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                            @enderror
                         </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Email</label>
                                 <input type="email" name="email" value="{{ old('email') }}"
                                     placeholder="contoh@email.com"
-                                    class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                    required />
+                                    class="w-full rounded-xl border @error('email') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+                                @error('email')
+                                    <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                                @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp /
                                     HP</label>
                                 <input type="text" name="no_hp" value="{{ old('no_hp') }}"
                                     placeholder="628xxxxxxxxxx"
-                                    class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                    required />
+                                    class="w-full rounded-xl border @error('no_hp') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+                                @error('no_hp')
+                                    <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
-                                <input type="password" name="password" value="{{ old('password') }}"
-                                    placeholder="Buat password user"
-                                    class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                    required />
+                                <input type="password" name="password" placeholder="Buat password user"
+                                    class="w-full rounded-xl border @error('password') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+                                @error('password')
+                                    <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                                @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Role</label>
                                 <select name="role"
-                                    class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                    required>
-                                    <option selected disabled>Pilih Role</option>
-                                    <option value="Admin">Admin</option>
-                                    <option value="Petugas">Petugas</option>
-                                    <option value="Warga">Warga</option>
+                                    class="w-full rounded-xl border @error('role') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                                    <option disabled>Pilih Role</option>
+                                    <option value="Admin" {{ old('role') == 'Admin' ? 'selected' : '' }}>Admin
+                                    </option>
+                                    <option value="Petugas" {{ old('role') == 'Petugas' ? 'selected' : '' }}>Petugas
+                                    </option>
+                                    <option selected value="Warga" {{ old('role') == 'Warga' ? 'selected' : '' }}>
+                                        Warga
+                                    </option>
                                 </select>
+                                @error('role')
+                                    <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
+
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Desa / Kelurahan</label>
                             <select name="desa_id"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                required>
-                                <option selected disabled>Pilih Desa</option>
+                                class="w-full rounded-xl border @error('desa_id') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                                <option value="" selected disabled>Pilih Desa</option>
                                 @foreach ($desa as $item)
-                                    <option value="{{ $item->id }}">{{ $item->nama }}</option>
+                                    <option value="{{ $item->id }}"
+                                        {{ old('desa_id') == $item->id ? 'selected' : '' }}>{{ $item->nama }}
+                                    </option>
                                 @endforeach
                             </select>
+                            @error('desa_id')
+                                <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                            @enderror
                         </div>
+
                         <div class="mt-6 flex items-center justify-end gap-3 pt-2">
                             <button type="button" @click="modalTambah = false"
                                 class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">Batal</button>
@@ -408,55 +496,111 @@
                     x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
                     x-transition:leave-end="opacity-0 scale-95"
                     class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+
                     <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                         <h3 class="text-base font-bold text-slate-800">Edit Data User</h3>
                         <button type="button" @click="modalEdit = false"
-                            class="text-slate-400 hover:text-slate-600 transition"><i
-                                class="fa-solid fa-xmark text-lg"></i></button>
+                            class="text-slate-400 hover:text-slate-600 transition">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
                     </div>
-                    <form @submit.prevent="modalEdit = false" class="p-6 space-y-4">
+
+                    <form :action="'{{ url('/admin/user') }}/' + (selectedUser ? selectedUser.id : '')" method="POST"
+                        class="p-6 space-y-4">
+                        @csrf
+                        @method('PUT')
+
+                        <input type="hidden" name="user_id" :value="selectedUser ? selectedUser.id : ''">
+
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">NIK</label>
-                            <input type="text" value="3515081204950001"
-                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-500 outline-none cursor-not-allowed"
-                                disabled />
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">NIK (Nomor Induk
+                                Kependudukan)</label>
+                            <input type="text" name="nik" x-model="selectedUser.nik"
+                                placeholder="Masukkan 16 digit NIK"
+                                class="w-full rounded-xl border @error('nik') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+                            @error('nik')
+                                <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                            @enderror
                         </div>
+
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap</label>
-                            <input type="text" x-bind:value="selectedUser"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                required />
+                            <input type="text" name="name" x-model="selectedUser.name"
+                                placeholder="Masukkan nama lengkap user"
+                                class="w-full rounded-xl border @error('name') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+                            @error('name')
+                                <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                            @enderror
                         </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">Email</label>
-                                <input type="email" value="user@gmail.com"
-                                    class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                    required />
+                                <input type="email" name="email" x-model="selectedUser.email"
+                                    placeholder="contoh@email.com"
+                                    class="w-full rounded-xl border @error('email') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+                                @error('email')
+                                    <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                                @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp /
                                     HP</label>
-                                <input type="text" value="081234567890"
-                                    class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
-                                    required />
+                                <input type="text" name="no_hp" x-model="selectedUser.no_hp"
+                                    placeholder="628xxxxxxxxxx"
+                                    class="w-full rounded-xl border @error('no_hp') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+                                @error('no_hp')
+                                    <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Password <span
+                                        class="text-[10px] font-normal text-slate-400">(Kosongkan jika tidak
+                                        diubah)</span></label>
+                                <input type="password" name="password" placeholder="••••••••"
+                                    class="w-full rounded-xl border @error('password') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+                                @error('password')
+                                    <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Role</label>
+                                <select name="role" x-model="selectedUser.role"
+                                    class="w-full rounded-xl border @error('role') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                                    <option value="" disabled>Pilih Role</option>
+                                    <option value="Admin">Admin</option>
+                                    <option value="Petugas">Petugas</option>
+                                    <option value="Warga">Warga</option>
+                                </select>
+                                @error('role')
+                                    <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Desa / Kelurahan</label>
-                            <select
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
-                                <option value="1" selected>Desa Sukamaju</option>
-                                <option value="2">Desa Harapan</option>
-                                <option value="3">Desa Makmur</option>
+                            <select name="desa_id" x-model="selectedUser.desa_id"
+                                class="w-full rounded-xl border @error('desa_id') border-rose-500 @else border-slate-200 @enderror bg-white px-3.5 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                                <option value="" disabled>Pilih Desa</option>
+                                @foreach ($desa as $item)
+                                    <option value="{{ $item->id }}">{{ $item->nama }}</option>
+                                @endforeach
                             </select>
+                            @error('desa_id')
+                                <p class="mt-1 text-[11px] text-rose-500">{{ $message }}</p>
+                            @enderror
                         </div>
+
                         <div class="mt-6 flex items-center justify-end gap-3 pt-2">
                             <button type="button" @click="modalEdit = false"
                                 class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">Batal</button>
                             <button type="submit"
-                                class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition">Simpan
-                                Perubahan</button>
+                                class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 shadow-md shadow-blue-500/20 transition">Perbarui
+                                Data</button>
                         </div>
                     </form>
                 </div>
@@ -478,27 +622,39 @@
                     x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
                     x-transition:leave-end="opacity-0 scale-95"
                     class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md p-6 text-center">
+
                     <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
                         :class="actionType === 'aktifkan' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'">
                         <i class="fa-solid text-lg"
                             :class="actionType === 'aktifkan' ? 'fa-user-check' : 'fa-user-slash'"></i>
                     </div>
+
                     <h3 class="mt-4 text-base font-bold text-slate-800"
                         x-text="actionType === 'aktifkan' ? 'Aktifkan Akun User?' : 'Nonaktifkan Akun User?'"></h3>
+
                     <p class="mt-2 text-xs text-slate-500">
                         Apakah Anda yakin ingin <span class="font-semibold text-slate-700" x-text="actionType"></span>
-                        akun atas nama <span class="font-semibold text-slate-700" x-text="selectedUser"></span>?
+                        akun atas nama <span class="font-semibold text-slate-700"
+                            x-text="selectedUser ? selectedUser.name : ''"></span>?
                     </p>
-                    <div class="mt-6 flex items-center justify-center gap-3">
+
+                    <form
+                        :action="'{{ url('/admin/user') }}/' + (selectedUser ? selectedUser.id : '') + '/toggle-status'"
+                        method="POST" class="mt-6 flex items-center justify-center gap-3">
+                        @csrf
+                        @method('PATCH')
+
                         <button type="button" @click="modalStatus = false"
-                            class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">Batal</button>
-                        <button type="button" @click="modalStatus = false"
+                            class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+                            Batal
+                        </button>
+                        <button type="submit"
                             class="rounded-xl px-4 py-2 text-xs font-semibold text-white shadow-md transition"
                             :class="actionType === 'aktifkan' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' :
                                 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/20'">
                             Ya, Konfirmasi
                         </button>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -518,23 +674,34 @@
                     x-transition:leave="ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
                     x-transition:leave-end="opacity-0 scale-95"
                     class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md p-6 text-center">
+
                     <div
                         class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 text-rose-600">
                         <i class="fa-solid fa-trash-can text-lg"></i>
                     </div>
+
                     <h3 class="mt-4 text-base font-bold text-slate-800">Hapus Data User?</h3>
                     <p class="mt-2 text-xs text-slate-500">
                         Apakah Anda yakin ingin menghapus data user <span class="font-semibold text-slate-700"
-                            x-text="selectedUser"></span>? Tindakan ini tidak dapat dibatalkan.
+                            x-text="selectedUser ? selectedUser.name : ''"></span>? Tindakan ini tidak dapat
+                        dibatalkan.
                     </p>
-                    <div class="mt-6 flex items-center justify-center gap-3">
+
+                    {{-- Dynamic Route Action dengan Alpine.js --}}
+                    <form :action="'{{ url('/admin/user') }}/' + (selectedUser ? selectedUser.id : '')" method="POST"
+                        class="mt-6 flex items-center justify-center gap-3">
+                        @csrf
+                        @method('DELETE')
+
                         <button type="button" @click="modalHapus = false"
-                            class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">Batal</button>
-                        <button type="button" @click="modalHapus = false"
+                            class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+                            Batal
+                        </button>
+                        <button type="submit"
                             class="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700 shadow-md shadow-rose-500/20 transition">
                             Ya, Hapus
                         </button>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>

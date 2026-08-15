@@ -77,9 +77,6 @@
                     class="space-y-5" x-data="{ avatarPreview: null, showPassword: false, showConfirmPassword: false }">
                     @csrf
 
-                    <!-- Role Default Warga -->
-                    <input type="hidden" name="role" value="Warga">
-
                     <!-- Grid Layout for Inputs -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
@@ -171,48 +168,30 @@
                             @enderror
                         </div>
 
-                        <!-- Field Wilayah -->
+                        <!-- Field Desa -->
                         <div class="md:col-span-2">
-                            <label for="wilayah_id"
+                            <label for="Desa_id"
                                 class="block text-xs font-semibold text-[#1E293B] uppercase tracking-wider mb-2">
-                                Wilayah / Kelurahan <span class="text-[#EF4444]">*</span>
+                                Desa / Kelurahan <span class="text-[#EF4444]">*</span>
                             </label>
                             <div class="relative">
                                 <div
                                     class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#1E293B]/40 text-sm">
                                     <i class="fa-solid fa-map-location-dot"></i>
                                 </div>
-                                @if (isset($wilayahs) && count($wilayahs) > 0)
-                                    <select id="wilayah_id" name="wilayah_id" required
-                                        class="w-full pl-10 pr-4 py-3 bg-[#F8FAFC] border @error('wilayah_id') border-[#EF4444] @else border-[#E2E8F0] @enderror rounded-xl text-sm text-[#1E293B] focus:outline-none focus:border-[#2563EB] focus:bg-white transition duration-200 appearance-none">
-                                        <option value="" disabled selected>-- Pilih Wilayah / Kelurahan --
-                                        </option>
-                                        @foreach ($wilayahs as $wilayah)
-                                            <option value="{{ $wilayah->id }}"
-                                                {{ old('wilayah_id') == $wilayah->id ? 'selected' : '' }}>
-                                                {{ $wilayah->nama_wilayah ?? ($wilayah->nama ?? ($wilayah->name ?? 'Wilayah #' . $wilayah->id)) }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                @else
-                                    <select id="wilayah_id" name="wilayah_id" required
-                                        class="w-full pl-10 pr-4 py-3 bg-[#F8FAFC] border @error('wilayah_id') border-[#EF4444] @else border-[#E2E8F0] @enderror rounded-xl text-sm text-[#1E293B] focus:outline-none focus:border-[#2563EB] focus:bg-white transition duration-200 appearance-none">
-                                        <option value="" disabled {{ old('wilayah_id') ? '' : 'selected' }}>--
-                                            Pilih Wilayah / Kelurahan --</option>
-                                        <option value="1" {{ old('wilayah_id') == '1' ? 'selected' : '' }}>
-                                            Wilayah Pusat / Kecamatan</option>
-                                        <option value="2" {{ old('wilayah_id') == '2' ? 'selected' : '' }}>
-                                            Kelurahan / Desa 01</option>
-                                        <option value="3" {{ old('wilayah_id') == '3' ? 'selected' : '' }}>
-                                            Kelurahan / Desa 02</option>
-                                    </select>
-                                @endif
+                                <select id="desa_id" name="desa_id" required
+                                    class="w-full pl-10 pr-4 py-3 bg-[#F8FAFC] border @error('desa_id') border-[#EF4444] @else border-[#E2E8F0] @enderror rounded-xl text-sm text-[#1E293B] focus:outline-none focus:border-[#2563EB] focus:bg-white transition duration-200 appearance-none">
+                                    <option selected disabled>Pilih Desa</option>
+                                    @foreach ($desa as $item)
+                                        <option value="{{ $item->id }}">{{ $item->nama }}</option>
+                                    @endforeach
+                                </select>
                                 <div
                                     class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-[#1E293B]/40 text-xs">
                                     <i class="fa-solid fa-chevron-down"></i>
                                 </div>
                             </div>
-                            @error('wilayah_id')
+                            @error('desa_id')
                                 <p class="mt-1.5 text-xs text-[#EF4444] font-medium flex items-center gap-1">
                                     <i class="fa-solid fa-circle-exclamation"></i> {{ $message }}
                                 </p>
