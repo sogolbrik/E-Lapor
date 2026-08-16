@@ -1,192 +1,441 @@
+<!--
+    ============================================================================
+    E-LAPOR - Landing Page (welcome.blade.php)
+    ----------------------------------------------------------------------------
+    Design Read: Layanan publik kecamatan untuk warga lintas usia, gaya visual
+    Material Design Modern + Illustrative UI (lihat Design.md), dial
+    ENERGY 2 / RHYTHM 2 / MOTION 2 - tenang & terpercaya seperti layanan
+    pemerintah, tapi tetap hidup lewat mikro-interaksi nyata (scrollspy, peta
+    interaktif, tab alur status, filter aduan), bukan animasi hias tanpa fungsi.
+
+    Keputusan desain (1 baris per keputusan, lihat antislop R-31):
+    - Palet dibatasi ke token Design.md (Primary/Secondary/Accent + netral)
+      supaya identitas visual E-Lapor konsisten di semua halaman.
+    - Poppins dipakai karena sudah ditetapkan sebagai font resmi sistem.
+    - Radius 12/16/18px mengikuti tabel Border Radius Design.md, tidak dibuat
+      pill semua agar hierarki tombol vs kartu tetap terbaca.
+    - Motif visual berulang: garis putus-putus "jalur rute" penghubung
+      titik-titik (step, timeline, peta) - merepresentasikan inti produk:
+      aduan dirutekan otomatis berdasarkan lokasi ke petugas desa.
+    - Statistik & daftar aduan memakai variabel dari controller dengan
+      fallback contoh yang ditandai jelas, bukan angka klaim marketing.
+    - Tema terang saja (tanpa dark mode) karena Design.md menetapkan
+      "Light Theme" sebagai keputusan sistem, bukan default AI.
+    ============================================================================
+-->
+@php
+    // ------------------------------------------------------------------
+    // Data placeholder - pada implementasi nyata, kirim variabel ini dari
+    // WelcomeController (mis. cache 5 menit dari query COUNT/GROUP BY).
+    // Ditandai eksplisit sebagai contoh agar tidak dianggap klaim final.
+    // ------------------------------------------------------------------
+    $stats = $stats ?? [
+        'total' => 0,
+        'diproses' => 0,
+        'selesai' => 0,
+        'responRate' => null,
+    ];
+
+    $recentComplaints = $recentComplaints ?? collect();
+
+    $kecamatanCenter = $kecamatanCenter ?? ['lat' => -7.4724, 'lng' => 112.434];
+    $kecamatanName = $kecamatanName ?? 'Kecamatan';
+
+    $statusLabel = [
+        'pending' => ['label' => 'Menunggu Verifikasi', 'color' => '#F59E0B', 'bg' => '#F59E0B1a'],
+        'processed' => ['label' => 'Diproses', 'color' => '#3B82F6', 'bg' => '#3B82F61a'],
+        'rejected' => ['label' => 'Ditolak', 'color' => '#EF4444', 'bg' => '#EF44441a'],
+        'completed' => ['label' => 'Selesai', 'color' => '#22C55E', 'bg' => '#22C55E1a'],
+    ];
+@endphp
 <!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Lapor - Layanan Pengaduan Masyarakat Online</title>
+    <meta name="description"
+        content="E-Lapor - Sistem Pengaduan Masyarakat tingkat kecamatan. Laporkan kerusakan fasilitas umum, kebersihan lingkungan, dan gangguan ketertiban secara transparan dan terukur.">
+    <meta name="theme-color" content="#2563EB">
+    <title>E-Lapor - Layanan Pengaduan Masyarakat {{ $kecamatanName }}</title>
 
-    <!-- Google Fonts: Poppins -->
+    <!-- Google Fonts: Poppins (font resmi sistem, lihat Design.md §5) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- FontAwesome v6 -->
+    <!-- FontAwesome v6 (icon set resmi sistem, lihat Design.md §12) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- LeafletJS - dipakai untuk Peta Cakupan Wilayah, sesuai PRD §4 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
     <!-- Tailwind CSS v4 / Vite -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
+        :root {
+            /* Token warna - satu sumber kebenaran, mengikuti Design.md §4 */
+            --color-primary: #2563EB;
+            --color-primary-dark: #1d4ed8;
+            --color-secondary: #10B981;
+            --color-accent: #F59E0B;
+            --color-bg: #F8FAFC;
+            --color-surface: #FFFFFF;
+            --color-text: #1E293B;
+            --color-border: #E2E8F0;
+            --color-success: #22C55E;
+            --color-warning: #F59E0B;
+            --color-error: #EF4444;
+            --color-info: #3B82F6;
+
+            /* Token radius - Design.md §6 */
+            --radius-btn: 12px;
+            --radius-input: 12px;
+            --radius-card: 16px;
+            --radius-modal: 18px;
+            --radius-badge: 999px;
+        }
+
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #F8FAFC;
-            color: #1E293B;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+        }
+
+        /* Fokus keyboard yang jelas - wajib untuk aksesibilitas (Design.md §2) */
+        a:focus-visible,
+        button:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible,
+        [tabindex]:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+            border-radius: 6px;
+        }
+
+        /* Motif "jalur rute": garis putus-putus penghubung titik proses */
+        .route-line {
+            background-image: linear-gradient(to right, var(--color-border) 50%, transparent 50%);
+            background-size: 12px 2px;
+            background-repeat: repeat-x;
+            background-position: center;
+        }
+
+        .route-line-vertical {
+            background-image: linear-gradient(to bottom, var(--color-border) 50%, transparent 50%);
+            background-size: 2px 12px;
+            background-repeat: repeat-y;
+            background-position: center;
+        }
+
+        /* Reveal-on-scroll - dipakai selektif (judul seksi + grid kartu),
+           bukan pada setiap elemen, lihat catatan MOTION dial di atas. */
+        [x-cloak] {
+            display: none !important;
+        }
+
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity .5s ease, transform .5s ease;
+        }
+
+        .reveal-up.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Skeleton shimmer - dipakai untuk loading state peta */
+        .skeleton-shimmer {
+            background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 37%, #F1F5F9 63%);
+            background-size: 400% 100%;
+            animation: shimmer 1.4s ease infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0 50%;
+            }
+        }
+
+        #leaflet-map {
+            border-radius: var(--radius-card);
+            z-index: 0;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 10px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal-up {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+
+            .skeleton-shimmer {
+                animation: none;
+            }
+
+            html {
+                scroll-behavior: auto;
+            }
         }
     </style>
 </head>
 
-<body class="bg-[#F8FAFC] text-[#1E293B] antialiased">
+<body class="bg-[var(--color-bg)] text-[var(--color-text)] antialiased" x-data="{ mobileMenuOpen: false, activeSection: 'beranda' }" x-init="const ids = ['beranda', 'alur-status', 'cara-kerja', 'peta-wilayah', 'aduan-publik', 'faq'];
+const sections = ids.map((id) => document.getElementById(id)).filter(Boolean);
+const spy = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => { if (entry.isIntersecting) activeSection = entry.target.id; });
+}, { rootMargin: '-40% 0px -55% 0px', threshold: 0 });
+sections.forEach((section) => spy.observe(section));"
+    @keydown.escape.window="mobileMenuOpen = false">
+
+    <!-- Lewati ke konten utama - aksesibilitas keyboard -->
+    <a href="#konten-utama"
+        class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:bg-white focus:text-[var(--color-primary)] focus:px-4 focus:py-2 focus:rounded-[var(--radius-btn)] focus:shadow-lg">
+        Lewati ke konten utama
+    </a>
 
     <!-- ========================================== -->
     <!-- SECTION 1: TOP NAVBAR / HEADER             -->
     <!-- ========================================== -->
-    <header x-data="{ mobileMenuOpen: false }"
-        class="sticky top-0 z-50 bg-[#FFFFFF]/90 backdrop-blur-md border-b border-[#E2E8F0] transition-all duration-200">
+    <header x-data="{ scrolled: false }" x-init="window.addEventListener('scroll', () => scrolled = window.scrollY > 8)"
+        :class="scrolled ? 'shadow-sm border-b border-[var(--color-border)]' : 'border-b border-transparent'"
+        class="sticky top-0 z-50 bg-white/90 backdrop-blur-md transition-shadow duration-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
 
             <!-- Brand Logo -->
-            <div class="flex items-center gap-3">
+            <a href="#beranda" class="flex items-center gap-3 shrink-0">
                 <div
-                    class="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center text-white text-xl shadow-sm">
-                    <i class="fa-solid fa-bullhorn"></i>
+                    class="w-10 h-10 bg-[var(--color-primary)] rounded-xl flex items-center justify-center text-white text-xl shadow-sm">
+                    <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
                 </div>
                 <div>
-                    <span class="text-xl font-bold text-[#2563EB] tracking-tight block leading-none">E-Lapor</span>
-                    <span class="text-[11px] font-medium text-[#1E293B]/60 tracking-wider uppercase">Portal Pengaduan
-                        Publik</span>
+                    <span
+                        class="text-xl font-bold text-[var(--color-primary)] tracking-tight block leading-none">E-Lapor</span>
+                    <span class="text-[11px] font-medium text-[var(--color-text)]/60 tracking-wide">Portal Pengaduan
+                        {{ $kecamatanName }}</span>
                 </div>
-            </div>
+            </a>
 
-            <!-- Quick Navigation Menu (Desktop) -->
-            <nav class="hidden lg:flex items-center gap-8">
-                <a href="#beranda"
-                    class="text-sm font-semibold text-[#2563EB] relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-[#2563EB] after:rounded-full">Beranda</a>
-                <a href="#cara-kerja"
-                    class="text-sm font-medium text-[#1E293B] hover:text-[#2563EB] transition duration-200">Cara
-                    Kerja</a>
-                <a href="#statistik"
-                    class="text-sm font-medium text-[#1E293B] hover:text-[#2563EB] transition duration-200">Statistik</a>
-                <a href="#aduan-publik"
-                    class="text-sm font-medium text-[#1E293B] hover:text-[#2563EB] transition duration-200">Aduan
-                    Publik</a>
-                <a href="#faq"
-                    class="text-sm font-medium text-[#1E293B] hover:text-[#2563EB] transition duration-200">FAQ</a>
+            <!-- Quick Navigation Menu (Desktop) - scrollspy via IntersectionObserver -->
+            <nav class="hidden lg:flex items-center gap-1" aria-label="Navigasi utama">
+                <template
+                    x-for="item in [
+                    { id: 'beranda', label: 'Beranda' },
+                    { id: 'alur-status', label: 'Alur Status' },
+                    { id: 'cara-kerja', label: 'Cara Kerja' },
+                    { id: 'peta-wilayah', label: 'Peta Wilayah' },
+                    { id: 'aduan-publik', label: 'Aduan Publik' },
+                    { id: 'faq', label: 'FAQ' },
+                ]"
+                    :key="item.id">
+                    <a :href="'#' + item.id"
+                        :class="activeSection === item.id ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/5' :
+                            'text-[var(--color-text)]/70 hover:text-[var(--color-primary)] hover:bg-[var(--color-bg)]'"
+                        class="px-3.5 py-2 rounded-lg text-sm font-medium transition duration-200"
+                        x-text="item.label"></a>
+                </template>
             </nav>
 
             <!-- Action Buttons (Desktop) -->
-            <div class="hidden lg:flex items-center gap-4">
+            <div class="hidden lg:flex items-center gap-3">
                 <a href="{{ route('login') }}"
-                    class="px-5 py-2.5 rounded-xl border border-[#2563EB] text-[#2563EB] text-sm font-medium hover:bg-[#2563EB] hover:text-white transition duration-200">
+                    class="px-5 py-2.5 rounded-[var(--radius-btn)] border border-[var(--color-primary)] text-[var(--color-primary)] text-sm font-medium hover:bg-[var(--color-primary)] hover:text-white transition duration-200">
                     Masuk
                 </a>
                 <a href="{{ route('register') }}"
-                    class="px-5 py-2.5 rounded-xl bg-[#2563EB] text-white text-sm font-medium hover:bg-[#1d4ed8] shadow-sm hover:shadow transition duration-200">
-                    Daftar
+                    class="px-5 py-2.5 rounded-[var(--radius-btn)] bg-[var(--color-primary)] text-white text-sm font-medium hover:bg-[var(--color-primary-dark)] shadow-sm hover:shadow transition duration-200">
+                    Daftar Akun Warga
                 </a>
             </div>
 
             <!-- Mobile Menu Button -->
-            <button @click="mobileMenuOpen = !mobileMenuOpen"
-                class="lg:hidden p-2 text-[#1E293B] hover:text-[#2563EB] focus:outline-none">
-                <i class="fa-solid" :class="mobileMenuOpen ? 'fa-xmark text-2xl' : 'fa-bars text-xl'"></i>
+            <button @click="mobileMenuOpen = !mobileMenuOpen" :aria-expanded="mobileMenuOpen.toString()"
+                aria-controls="mobile-menu" aria-label="Buka menu navigasi"
+                class="lg:hidden p-2 text-[var(--color-text)] hover:text-[var(--color-primary)] focus:outline-none">
+                <i class="fa-solid" :class="mobileMenuOpen ? 'fa-xmark text-2xl' : 'fa-bars text-xl'"
+                    aria-hidden="true"></i>
             </button>
         </div>
 
         <!-- Mobile Navigation Menu -->
-        <div x-show="mobileMenuOpen" x-collapse
-            class="lg:hidden bg-[#FFFFFF] border-b border-[#E2E8F0] px-4 pt-2 pb-6 space-y-3">
+        <div id="mobile-menu" x-show="mobileMenuOpen" x-collapse x-cloak
+            class="lg:hidden bg-white border-b border-[var(--color-border)] px-4 pt-2 pb-6 space-y-1">
             <a href="#beranda" @click="mobileMenuOpen = false"
-                class="block py-2 text-sm font-semibold text-[#2563EB]">Beranda</a>
+                class="block px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-bg)]">Beranda</a>
+            <a href="#alur-status" @click="mobileMenuOpen = false"
+                class="block px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-bg)]">Alur
+                Status</a>
             <a href="#cara-kerja" @click="mobileMenuOpen = false"
-                class="block py-2 text-sm font-medium text-[#1E293B]">Cara Kerja</a>
-            <a href="#statistik" @click="mobileMenuOpen = false"
-                class="block py-2 text-sm font-medium text-[#1E293B]">Statistik</a>
+                class="block px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-bg)]">Cara
+                Kerja</a>
+            <a href="#peta-wilayah" @click="mobileMenuOpen = false"
+                class="block px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-bg)]">Peta
+                Wilayah</a>
             <a href="#aduan-publik" @click="mobileMenuOpen = false"
-                class="block py-2 text-sm font-medium text-[#1E293B]">Aduan Publik</a>
+                class="block px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-bg)]">Aduan
+                Publik</a>
             <a href="#faq" @click="mobileMenuOpen = false"
-                class="block py-2 text-sm font-medium text-[#1E293B]">FAQ</a>
-            <div class="pt-4 border-t border-[#E2E8F0] flex flex-col gap-2">
+                class="block px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-bg)]">FAQ</a>
+            <div class="pt-4 mt-2 border-t border-[var(--color-border)] flex flex-col gap-2">
                 <a href="{{ route('login') }}"
-                    class="w-full text-center py-2.5 rounded-xl border border-[#2563EB] text-[#2563EB] text-sm font-medium">Masuk</a>
+                    class="w-full text-center py-2.5 rounded-[var(--radius-btn)] border border-[var(--color-primary)] text-[var(--color-primary)] text-sm font-medium">Masuk</a>
                 <a href="{{ route('register') }}"
-                    class="w-full text-center py-2.5 rounded-xl bg-[#2563EB] text-white text-sm font-medium">Daftar</a>
-                <a href="#portal-petugas"
-                    class="text-center text-xs font-medium text-[#1E293B]/70 py-2 flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-user-shield text-[#2563EB]"></i> Portal Petugas
-                </a>
+                    class="w-full text-center py-2.5 rounded-[var(--radius-btn)] bg-[var(--color-primary)] text-white text-sm font-medium">Daftar
+                    Akun Warga</a>
             </div>
         </div>
     </header>
 
-    <main id="beranda">
+    <main id="konten-utama">
         <!-- ========================================== -->
-        <!-- SECTION 2: HERO SECTION                    -->
+        <!-- SECTION 2: HERO                            -->
         <!-- ========================================== -->
-        <section class="relative pt-12 pb-20 lg:pt-20 lg:pb-32 overflow-hidden bg-[#F8FAFC]">
+        <section id="beranda" class="relative pt-12 pb-20 lg:pt-20 lg:pb-32 overflow-hidden scroll-mt-20">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="grid lg:grid-cols-12 gap-12 items-center">
 
                     <!-- Left Column: Content & CTA -->
                     <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
-                        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#1E293B] leading-tight">
-                            Sampaikan Laporan Anda, Wujudkan Pelayanan Publik yang Lebih Baik.
+                        <span
+                            class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-badge)] bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-xs font-semibold">
+                            <i class="fa-solid fa-location-dot" aria-hidden="true"></i> Melayani seluruh desa di
+                            {{ $kecamatanName }}
+                        </span>
+                        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--color-text)] leading-tight">
+                            Laporkan Masalah di Lingkungan Anda, Terpantau Sampai Tuntas.
                         </h1>
-                        <p class="text-base sm:text-lg text-[#1E293B]/70 max-w-2xl mx-auto lg:mx-0">
-                            Platform resmi pengaduan dan aspirasi masyarakat secara transparan, terukur, dan
-                            terintegrasi.
+                        <p class="text-base sm:text-lg text-[var(--color-text)]/70 max-w-2xl mx-auto lg:mx-0">
+                            Tandai lokasi kejadian di peta, unggah bukti foto, dan laporan Anda otomatis
+                            diteruskan ke petugas desa yang berwenang menangani wilayah tersebut.
                         </p>
 
                         <!-- CTA Buttons -->
-                        <div class="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                            <a href="{{ route('login') }}"
-                                class="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#2563EB] text-white font-medium text-base hover:bg-[#1d4ed8] shadow-md hover:shadow-lg transition duration-200 flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-plus-circle"></i>
+                        <div class="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
+                            <a href="{{ route('register') }}"
+                                class="w-full sm:w-auto px-8 py-4 rounded-[var(--radius-btn)] bg-[var(--color-primary)] text-white font-medium text-base hover:bg-[var(--color-primary-dark)] shadow-md hover:shadow-lg transition duration-200 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus-circle" aria-hidden="true"></i>
                                 <span>Buat Laporan Baru</span>
+                            </a>
+                            <a href="#alur-status"
+                                class="w-full sm:w-auto px-8 py-4 rounded-[var(--radius-btn)] border border-[var(--color-border)] text-[var(--color-text)] font-medium text-base hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition duration-200 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-route" aria-hidden="true"></i>
+                                <span>Lihat Alur Prosesnya</span>
                             </a>
                         </div>
 
+                        <!-- Quick Ticket Check -->
+                        <div x-data="{ kode: '' }"
+                            @submit.prevent="if (kode.trim()) window.location.href = '{{ route('login') }}?ref=' + encodeURIComponent(kode.trim())"
+                            class="pt-4 max-w-md mx-auto lg:mx-0">
+                            <form
+                                @submit.prevent="if (kode.trim()) window.location.href = '{{ route('login') }}?ref=' + encodeURIComponent(kode.trim())"
+                                class="flex items-center gap-2 bg-white border border-[var(--color-border)] rounded-[var(--radius-input)] p-1.5 shadow-sm focus-within:border-[var(--color-primary)] transition duration-200">
+                                <label for="kode-tiket" class="sr-only">Nomor tiket laporan</label>
+                                <i class="fa-solid fa-magnifying-glass text-[var(--color-text)]/40 pl-2"
+                                    aria-hidden="true"></i>
+                                <input id="kode-tiket" x-model="kode" type="text"
+                                    placeholder="Sudah lapor? Masukkan kode tiket ADU-..."
+                                    class="flex-1 min-w-0 bg-transparent text-sm px-1 py-2 outline-none placeholder:text-[var(--color-text)]/40">
+                                <button type="submit"
+                                    class="shrink-0 px-4 py-2 rounded-lg bg-[var(--color-text)] text-white text-xs font-semibold hover:bg-[var(--color-primary)] transition duration-200">
+                                    Lacak
+                                </button>
+                            </form>
+                            <p class="text-xs text-[var(--color-text)]/50 mt-2 px-1">Anda akan diarahkan untuk masuk
+                                agar dapat melihat detail lengkap status laporan.</p>
+                        </div>
+
                         <!-- Trust Badges -->
-                        <div class="pt-6 flex flex-wrap items-center justify-center lg:justify-start gap-3">
+                        <div class="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-3">
                             <span
-                                class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#E2E8F0] text-xs font-medium text-[#1E293B] shadow-sm">
-                                <i class="fa-solid fa-user-ninja text-[#2563EB]"></i> Identitas Aman / Bisa Anonim
+                                class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-badge)] bg-white border border-[var(--color-border)] text-xs font-medium text-[var(--color-text)] shadow-sm">
+                                <i class="fa-solid fa-user-secret text-[var(--color-primary)]" aria-hidden="true"></i>
+                                Bisa Lapor Anonim
                             </span>
                             <span
-                                class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#E2E8F0] text-xs font-medium text-[#1E293B] shadow-sm">
-                                <i class="fa-solid fa-bolt text-[#F59E0B]"></i> Respon &lt; 24 Jam
+                                class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-badge)] bg-white border border-[var(--color-border)] text-xs font-medium text-[var(--color-text)] shadow-sm">
+                                <i class="fa-solid fa-bolt text-[var(--color-accent)]" aria-hidden="true"></i>
+                                Verifikasi &lt; 24 Jam
                             </span>
                             <span
-                                class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#E2E8F0] text-xs font-medium text-[#1E293B] shadow-sm">
-                                <i class="fa-solid fa-map-location-dot text-[#10B981]"></i> Berbasis Peta Presisi
+                                class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-badge)] bg-white border border-[var(--color-border)] text-xs font-medium text-[var(--color-text)] shadow-sm">
+                                <i class="fa-solid fa-map-location-dot text-[var(--color-secondary)]"
+                                    aria-hidden="true"></i> Rute Otomatis per Desa
                             </span>
                         </div>
                     </div>
 
-                    <!-- Right Column: Illustration -->
+                    <!-- Right Column: Illustration (mock report card, bukan produk asli - placeholder ilustratif) -->
                     <div class="lg:col-span-5 flex justify-center">
                         <div class="relative w-full max-w-md lg:max-w-none">
                             <div
-                                class="absolute -top-6 -left-6 w-72 h-72 bg-[#2563EB]/10 rounded-full filter blur-3xl pointer-events-none">
+                                class="absolute -top-6 -left-6 w-72 h-72 bg-[var(--color-primary)]/10 rounded-full filter blur-3xl pointer-events-none">
                             </div>
                             <div
-                                class="absolute -bottom-6 -right-6 w-72 h-72 bg-[#10B981]/10 rounded-full filter blur-3xl pointer-events-none">
+                                class="absolute -bottom-6 -right-6 w-72 h-72 bg-[var(--color-secondary)]/10 rounded-full filter blur-3xl pointer-events-none">
                             </div>
 
-                            <!-- Vector Card Illustration Container -->
-                            <div class="relative bg-white border border-[#E2E8F0] p-8 rounded-2xl shadow-xl space-y-6">
-                                <div class="flex items-center gap-4 border-b border-[#E2E8F0] pb-4">
-                                    <div
-                                        class="w-12 h-12 rounded-xl bg-[#2563EB]/10 text-[#2563EB] flex items-center justify-center text-xl">
-                                        <i class="fa-solid fa-shield-cat"></i>
+                            <div class="relative bg-white border border-[var(--color-border)] p-6 rounded-[var(--radius-card)] shadow-xl space-y-5"
+                                x-data="{ step: 3 }">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="w-11 h-11 rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-lg">
+                                            <i class="fa-solid fa-road-bridge" aria-hidden="true"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-sm font-bold text-[var(--color-text)]">
+                                                ADU-{{ now()->format('Ymd') }}-0192</h4>
+                                            <p class="text-xs text-[var(--color-text)]/50">Jalan Berlubang &middot;
+                                                Desa Sukamaju</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 class="text-base font-bold text-[#1E293B]">Laporan Terverifikasi</h4>
-                                        <p class="text-xs text-[#1E293B]/60">Sistem terintegrasi instansi resmi</p>
-                                    </div>
-                                </div>
-                                <div class="space-y-3">
-                                    <div class="h-3 bg-[#F8FAFC] rounded-full w-3/4"></div>
-                                    <div class="h-3 bg-[#F8FAFC] rounded-full w-full"></div>
-                                    <div class="h-3 bg-[#F8FAFC] rounded-full w-5/6"></div>
-                                </div>
-                                <div class="pt-2 flex items-center justify-between">
                                     <span
-                                        class="px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
-                                        <i class="fa-solid fa-check-circle mr-1"></i> Tuntas 100%
-                                    </span>
-                                    <span class="text-xs font-medium text-[#1E293B]/50">Pengerjaan Transparan</span>
+                                        class="px-2.5 py-1 rounded-[var(--radius-badge)] bg-[var(--color-info)]/10 text-[var(--color-info)] text-[11px] font-semibold">Diproses</span>
+                                </div>
+
+                                <!-- Mini timeline demo, motif garis rute -->
+                                <div class="grid grid-cols-4 gap-0 items-start pt-2">
+                                    <template x-for="(s, i) in ['Masuk', 'Verifikasi', 'Dikerjakan', 'Selesai']"
+                                        :key="i">
+                                        <div class="flex flex-col items-center relative">
+                                            <div class="w-full h-0.5 absolute top-3.5 route-line"
+                                                :class="i === 0 ? 'invisible' : ''"></div>
+                                            <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold relative z-10 border-2"
+                                                :class="i < step ?
+                                                    'bg-[var(--color-primary)] border-[var(--color-primary)] text-white' :
+                                                    (i === step ?
+                                                        'bg-white border-[var(--color-accent)] text-[var(--color-accent)] animate-pulse' :
+                                                        'bg-white border-[var(--color-border)] text-[var(--color-text)]/30'
+                                                        )">
+                                                <i class="fa-solid fa-check text-[9px]" x-show="i < step"
+                                                    aria-hidden="true"></i>
+                                                <span x-show="i >= step" x-text="i + 1"></span>
+                                            </div>
+                                            <span class="text-[10px] mt-1.5 text-center text-[var(--color-text)]/60"
+                                                x-text="s"></span>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div
+                                    class="bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl p-3 text-xs text-[var(--color-text)]/70">
+                                    <span class="font-semibold text-[var(--color-primary)]">Tanggapan terbaru:</span>
+                                    Tim teknis Desa Sukamaju telah menuju lokasi untuk penambalan aspal.
                                 </div>
                             </div>
                         </div>
@@ -199,56 +448,70 @@
         <!-- ========================================== -->
         <!-- SECTION 3: LIVE STATISTICS BANNER          -->
         <!-- ========================================== -->
-        <section id="statistik" class="relative -mt-12 z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-8 shadow-sm">
+        <section class="relative -mt-8 z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white border border-[var(--color-border)] rounded-[var(--radius-card)] p-6 sm:p-8 shadow-sm reveal-up"
+                x-intersect-once="$el.classList.add('is-visible')" x-data>
                 <div
-                    class="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 divide-y lg:divide-y-0 lg:divide-x divide-[#E2E8F0]">
+                    class="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 divide-y lg:divide-y-0 lg:divide-x divide-[var(--color-border)]">
 
-                    <!-- Metric 1 -->
-                    <div class="flex items-center gap-4 pt-4 lg:pt-0">
+                    <div class="flex items-center gap-4 pt-4 lg:pt-0" x-data="{ n: 0 }"
+                        x-intersect-once="Array.from({length: 30}).forEach((_, i) => setTimeout(() => n = Math.round({{ (int) $stats['total'] }} * (i + 1) / 30), i * 20))">
                         <div
-                            class="w-12 h-12 rounded-xl bg-[#2563EB]/10 text-[#2563EB] flex items-center justify-center text-xl shrink-0">
-                            <i class="fa-solid fa-inbox"></i>
+                            class="w-12 h-12 rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-inbox" aria-hidden="true"></i>
                         </div>
                         <div>
-                            <div class="text-2xl sm:text-3xl font-bold text-[#1E293B]">1,420</div>
-                            <div class="text-xs sm:text-sm font-medium text-[#1E293B]/60">Total Aduan Masuk</div>
+                            <div class="text-2xl sm:text-3xl font-bold text-[var(--color-text)]"
+                                x-text="n.toLocaleString('id-ID')">0</div>
+                            <div class="text-xs sm:text-sm font-medium text-[var(--color-text)]/60">Total Aduan Masuk
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Metric 2 -->
-                    <div class="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-8">
+                    <div class="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-8" x-data="{ n: 0 }"
+                        x-intersect-once="Array.from({length: 30}).forEach((_, i) => setTimeout(() => n = Math.round({{ (int) $stats['diproses'] }} * (i + 1) / 30), i * 20))">
                         <div
-                            class="w-12 h-12 rounded-xl bg-[#F59E0B]/10 text-[#F59E0B] flex items-center justify-center text-xl shrink-0">
-                            <i class="fa-solid fa-spinner"></i>
+                            class="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-spinner" aria-hidden="true"></i>
                         </div>
                         <div>
-                            <div class="text-2xl sm:text-3xl font-bold text-[#1E293B]">105</div>
-                            <div class="text-xs sm:text-sm font-medium text-[#1E293B]/60">Sedang Diproses</div>
+                            <div class="text-2xl sm:text-3xl font-bold text-[var(--color-text)]"
+                                x-text="n.toLocaleString('id-ID')">0</div>
+                            <div class="text-xs sm:text-sm font-medium text-[var(--color-text)]/60">Sedang Diproses
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Metric 3 -->
-                    <div class="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-8">
+                    <div class="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-8" x-data="{ n: 0 }"
+                        x-intersect-once="Array.from({length: 30}).forEach((_, i) => setTimeout(() => n = Math.round({{ (int) $stats['selesai'] }} * (i + 1) / 30), i * 20))">
                         <div
-                            class="w-12 h-12 rounded-xl bg-[#10B981]/10 text-[#10B981] flex items-center justify-center text-xl shrink-0">
-                            <i class="fa-solid fa-circle-check"></i>
+                            class="w-12 h-12 rounded-xl bg-[var(--color-secondary)]/10 text-[var(--color-secondary)] flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
                         </div>
                         <div>
-                            <div class="text-2xl sm:text-3xl font-bold text-[#1E293B]">1,280</div>
-                            <div class="text-xs sm:text-sm font-medium text-[#1E293B]/60">Selesai Ditangani</div>
+                            <div class="text-2xl sm:text-3xl font-bold text-[var(--color-text)]"
+                                x-text="n.toLocaleString('id-ID')">0</div>
+                            <div class="text-xs sm:text-sm font-medium text-[var(--color-text)]/60">Selesai Ditangani
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Metric 4 -->
                     <div class="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-8">
                         <div
-                            class="w-12 h-12 rounded-xl bg-[#3B82F6]/10 text-[#3B82F6] flex items-center justify-center text-xl shrink-0">
-                            <i class="fa-solid fa-chart-line"></i>
+                            class="w-12 h-12 rounded-xl bg-[var(--color-info)]/10 text-[var(--color-info)] flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
                         </div>
                         <div>
-                            <div class="text-2xl sm:text-3xl font-bold text-[#1E293B]">98.5%</div>
-                            <div class="text-xs sm:text-sm font-medium text-[#1E293B]/60">Tingkat Respon Cepat</div>
+                            <div class="text-2xl sm:text-3xl font-bold text-[var(--color-text)]">
+                                @if ($stats['responRate'] !== null)
+                                    {{ $stats['responRate'] }}%
+                                @else
+                                    <span class="text-base text-[var(--color-text)]/40 font-medium">Belum ada
+                                        data</span>
+                                @endif
+                            </div>
+                            <div class="text-xs sm:text-sm font-medium text-[var(--color-text)]/60">Verifikasi &lt; 24
+                                Jam</div>
                         </div>
                     </div>
 
@@ -257,310 +520,496 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- SECTION 4: CARA KERJA / TATA CARA          -->
+        <!-- SECTION 4: ALUR STATUS ADUAN (interactive) -->
         <!-- ========================================== -->
-        <section id="cara-kerja" class="py-20 bg-[#F8FAFC]">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section id="alur-status" class="py-20 scroll-mt-20">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
-                <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
-                    <h2 class="text-2xl sm:text-3xl font-bold text-[#1E293B]">Cara Kerja Pengaduan</h2>
-                    <p class="text-sm sm:text-base text-[#1E293B]/70">4 langkah mudah menyampaikan laporan hingga
-                        diselesaikan oleh petugas.</p>
-                </div>
-
-                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-                    <!-- Step 1 -->
-                    <div
-                        class="bg-white border border-[#E2E8F0] rounded-2xl p-6 hover:shadow-md transition duration-200">
-                        <div
-                            class="w-12 h-12 rounded-xl bg-[#2563EB]/10 text-[#2563EB] flex items-center justify-center text-xl font-bold mb-6">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-[#1E293B] mb-2">1. Tulis Laporan</h3>
-                        <p class="text-sm text-[#1E293B]/70 leading-relaxed">Isi formulir, pilih kategori, tentukan
-                            titik lokasi peta, dan lampirkan bukti foto.</p>
-                    </div>
-
-                    <!-- Step 2 -->
-                    <div
-                        class="bg-white border border-[#E2E8F0] rounded-2xl p-6 hover:shadow-md transition duration-200">
-                        <div
-                            class="w-12 h-12 rounded-xl bg-[#3B82F6]/10 text-[#3B82F6] flex items-center justify-center text-xl font-bold mb-6">
-                            <i class="fa-solid fa-shield-halved"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-[#1E293B] mb-2">2. Verifikasi & Disposisi</h3>
-                        <p class="text-sm text-[#1E293B]/70 leading-relaxed">Laporan diverifikasi oleh petugas dalam
-                            kurun waktu &lt; 24 jam lalu ditugaskan ke dinas terkait.</p>
-                    </div>
-
-                    <!-- Step 3 -->
-                    <div
-                        class="bg-white border border-[#E2E8F0] rounded-2xl p-6 hover:shadow-md transition duration-200">
-                        <div
-                            class="w-12 h-12 rounded-xl bg-[#F59E0B]/10 text-[#F59E0B] flex items-center justify-center text-xl font-bold mb-6">
-                            <i class="fa-solid fa-screwdriver-wrench"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-[#1E293B] mb-2">3. Tindak Lanjut Lapangan</h3>
-                        <p class="text-sm text-[#1E293B]/70 leading-relaxed">Petugas memproses masalah di lapangan dan
-                            memperbarui progres secara transparan.</p>
-                    </div>
-
-                    <!-- Step 4 -->
-                    <div
-                        class="bg-white border border-[#E2E8F0] rounded-2xl p-6 hover:shadow-md transition duration-200">
-                        <div
-                            class="w-12 h-12 rounded-xl bg-[#10B981]/10 text-[#10B981] flex items-center justify-center text-xl font-bold mb-6">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-[#1E293B] mb-2">4. Selesai & Evaluasi</h3>
-                        <p class="text-sm text-[#1E293B]/70 leading-relaxed">Laporan dinyatakan selesai lengkap dengan
-                            foto bukti pengerjaan, lalu pelapor dapat memberikan ulasan.</p>
-                    </div>
-
-                </div>
-            </div>
-        </section>
-
-        <!-- ========================================== -->
-        <!-- SECTION 5: KATEGORI PENGADUAN POPULER      -->
-        <!-- ========================================== -->
-        <section class="py-20 bg-white border-y border-[#E2E8F0]">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-                <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
-                    <h2 class="text-2xl sm:text-3xl font-bold text-[#1E293B]">Kategori Pengaduan Populer</h2>
-                    <p class="text-sm sm:text-base text-[#1E293B]/70">Pilih kategori masalah yang ingin Anda laporkan.
+                <div class="text-center max-w-2xl mx-auto mb-14 space-y-3">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-[var(--color-text)]">Alur Status Laporan</h2>
+                    <p class="text-sm sm:text-base text-[var(--color-text)]/70">
+                        Setiap laporan melewati tahapan yang jelas. Klik tiap tahap untuk melihat apa yang terjadi di
+                        baliknya.
                     </p>
+                </div>
+
+                <div x-data="{ active: 'pending' }" class="space-y-8">
+
+                    <!-- Stepper -->
+                    <div class="relative flex justify-between items-start max-w-3xl mx-auto">
+                        <div class="absolute top-6 left-0 right-0 h-0.5 route-line"></div>
+
+                        <button @click="active = 'pending'"
+                            class="relative z-10 flex flex-col items-center gap-2 group"
+                            :aria-pressed="(active === 'pending').toString()">
+                            <span
+                                class="w-12 h-12 rounded-full flex items-center justify-center text-lg border-2 transition duration-200"
+                                :class="active === 'pending' ?
+                                    'bg-[var(--color-accent)] border-[var(--color-accent)] text-white shadow-md scale-105' :
+                                    'bg-white border-[var(--color-border)] text-[var(--color-text)]/50 group-hover:border-[var(--color-accent)]'">
+                                <i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>
+                            </span>
+                            <span class="text-xs font-semibold text-center"
+                                :class="active === 'pending' ? 'text-[var(--color-accent)]' : 'text-[var(--color-text)]/60'">Menunggu<br>Verifikasi</span>
+                        </button>
+
+                        <button @click="active = 'processed'"
+                            class="relative z-10 flex flex-col items-center gap-2 group"
+                            :aria-pressed="(active === 'processed').toString()">
+                            <span
+                                class="w-12 h-12 rounded-full flex items-center justify-center text-lg border-2 transition duration-200"
+                                :class="active === 'processed' ?
+                                    'bg-[var(--color-info)] border-[var(--color-info)] text-white shadow-md scale-105' :
+                                    'bg-white border-[var(--color-border)] text-[var(--color-text)]/50 group-hover:border-[var(--color-info)]'">
+                                <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
+                            </span>
+                            <span class="text-xs font-semibold text-center"
+                                :class="active === 'processed' ? 'text-[var(--color-info)]' : 'text-[var(--color-text)]/60'">Diproses</span>
+                        </button>
+
+                        <button @click="active = 'rejected'"
+                            class="relative z-10 flex flex-col items-center gap-2 group"
+                            :aria-pressed="(active === 'rejected').toString()">
+                            <span
+                                class="w-12 h-12 rounded-full flex items-center justify-center text-lg border-2 transition duration-200"
+                                :class="active === 'rejected' ?
+                                    'bg-[var(--color-error)] border-[var(--color-error)] text-white shadow-md scale-105' :
+                                    'bg-white border-[var(--color-border)] text-[var(--color-text)]/50 group-hover:border-[var(--color-error)]'">
+                                <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
+                            </span>
+                            <span class="text-xs font-semibold text-center"
+                                :class="active === 'rejected' ? 'text-[var(--color-error)]' : 'text-[var(--color-text)]/60'">Ditolak</span>
+                        </button>
+
+                        <button @click="active = 'completed'"
+                            class="relative z-10 flex flex-col items-center gap-2 group"
+                            :aria-pressed="(active === 'completed').toString()">
+                            <span
+                                class="w-12 h-12 rounded-full flex items-center justify-center text-lg border-2 transition duration-200"
+                                :class="active === 'completed' ?
+                                    'bg-[var(--color-secondary)] border-[var(--color-secondary)] text-white shadow-md scale-105' :
+                                    'bg-white border-[var(--color-border)] text-[var(--color-text)]/50 group-hover:border-[var(--color-secondary)]'">
+                                <i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>
+                            </span>
+                            <span class="text-xs font-semibold text-center"
+                                :class="active === 'completed' ? 'text-[var(--color-secondary)]' :
+                                    'text-[var(--color-text)]/60'">Selesai</span>
+                        </button>
+                    </div>
+
+                    <!-- Detail Panel -->
+                    <div
+                        class="bg-white border border-[var(--color-border)] rounded-[var(--radius-card)] p-6 sm:p-8 shadow-sm max-w-3xl mx-auto">
+                        <div x-show="active === 'pending'" x-cloak>
+                            <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2"><i
+                                    class="fa-solid fa-hourglass-half text-[var(--color-accent)] mr-2"
+                                    aria-hidden="true"></i>Menunggu Verifikasi</h3>
+                            <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Laporan baru masuk ke inbox
+                                petugas desa sesuai lokasi kejadian yang Anda tandai di peta. Petugas memeriksa
+                                kelengkapan data dan bukti foto dalam waktu kurang dari 24 jam.</p>
+                        </div>
+                        <div x-show="active === 'processed'" x-cloak>
+                            <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2"><i
+                                    class="fa-solid fa-screwdriver-wrench text-[var(--color-info)] mr-2"
+                                    aria-hidden="true"></i>Diproses</h3>
+                            <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Laporan diterima dan sedang
+                                ditindaklanjuti di lapangan. Petugas dapat menambahkan catatan progres beserta foto
+                                bukti pengerjaan yang bisa Anda pantau langsung.</p>
+                        </div>
+                        <div x-show="active === 'rejected'" x-cloak>
+                            <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2"><i
+                                    class="fa-solid fa-circle-xmark text-[var(--color-error)] mr-2"
+                                    aria-hidden="true"></i>Ditolak</h3>
+                            <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Laporan tidak dapat diproses
+                                lebih lanjut. Alasan penolakan selalu dicantumkan oleh petugas, misalnya data kurang
+                                lengkap atau di luar cakupan kewenangan desa.</p>
+                        </div>
+                        <div x-show="active === 'completed'" x-cloak>
+                            <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2"><i
+                                    class="fa-solid fa-flag-checkered text-[var(--color-secondary)] mr-2"
+                                    aria-hidden="true"></i>Selesai</h3>
+                            <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Masalah telah ditangani,
+                                lengkap dengan foto bukti pengerjaan di lapangan. Anda dapat memberikan penilaian
+                                kepuasan atas hasil penanganan.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- SECTION 5: CARA KERJA                      -->
+        <!-- ========================================== -->
+        <section id="cara-kerja" class="py-20 bg-white border-y border-[var(--color-border)] scroll-mt-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                <div class="text-center max-w-2xl mx-auto mb-16 space-y-3 reveal-up"
+                    x-intersect-once="$el.classList.add('is-visible')" x-data>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-[var(--color-text)]">Cara Kerja Pengaduan</h2>
+                    <p class="text-sm sm:text-base text-[var(--color-text)]/70">Empat langkah dari laporan ditulis
+                        sampai ditangani petugas desa.</p>
+                </div>
+
+                <div class="relative grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="hidden lg:block absolute top-12 left-[12.5%] right-[12.5%] h-0.5 route-line"></div>
+
+                    <div class="relative bg-white border border-[var(--color-border)] rounded-[var(--radius-card)] p-6 hover:shadow-md hover:-translate-y-0.5 transition duration-200 reveal-up"
+                        style="transition-delay:0ms" x-intersect-once="$el.classList.add('is-visible')" x-data>
+                        <div
+                            class="w-12 h-12 rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-xl mb-6">
+                            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2">1. Tulis Laporan</h3>
+                        <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Isi formulir, pilih kategori,
+                            tandai titik lokasi di peta interaktif, dan lampirkan bukti foto (maks. 5MB).</p>
+                    </div>
+
+                    <div class="relative bg-white border border-[var(--color-border)] rounded-[var(--radius-card)] p-6 hover:shadow-md hover:-translate-y-0.5 transition duration-200 reveal-up"
+                        style="transition-delay:80ms" x-intersect-once="$el.classList.add('is-visible')" x-data>
+                        <div
+                            class="w-12 h-12 rounded-xl bg-[var(--color-info)]/10 text-[var(--color-info)] flex items-center justify-center text-xl mb-6">
+                            <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2">2. Dirutekan Otomatis</h3>
+                        <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Sistem mendeteksi desa lokasi
+                            kejadian dan meneruskan laporan ke petugas desa yang berwenang.</p>
+                    </div>
+
+                    <div class="relative bg-white border border-[var(--color-border)] rounded-[var(--radius-card)] p-6 hover:shadow-md hover:-translate-y-0.5 transition duration-200 reveal-up"
+                        style="transition-delay:160ms" x-intersect-once="$el.classList.add('is-visible')" x-data>
+                        <div
+                            class="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center text-xl mb-6">
+                            <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2">3. Ditindaklanjuti</h3>
+                        <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Petugas memproses masalah di
+                            lapangan dan memperbarui progres beserta foto bukti secara transparan.</p>
+                    </div>
+
+                    <div class="relative bg-white border border-[var(--color-border)] rounded-[var(--radius-card)] p-6 hover:shadow-md hover:-translate-y-0.5 transition duration-200 reveal-up"
+                        style="transition-delay:240ms" x-intersect-once="$el.classList.add('is-visible')" x-data>
+                        <div
+                            class="w-12 h-12 rounded-xl bg-[var(--color-secondary)]/10 text-[var(--color-secondary)] flex items-center justify-center text-xl mb-6">
+                            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2">4. Selesai & Dinilai</h3>
+                        <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Laporan dinyatakan selesai
+                            lengkap dengan foto bukti pengerjaan, lalu Anda dapat memberi penilaian.</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- SECTION 6: PETA CAKUPAN WILAYAH (LeafletJS)-->
+        <!-- ========================================== -->
+        <section id="peta-wilayah" class="py-20 scroll-mt-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid lg:grid-cols-5 gap-10 items-center">
+
+                    <div class="lg:col-span-2 space-y-4 reveal-up" x-intersect-once="$el.classList.add('is-visible')"
+                        x-data>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-[var(--color-text)]">Peta Cakupan Wilayah</h2>
+                        <p class="text-sm sm:text-base text-[var(--color-text)]/70 leading-relaxed">
+                            Saat membuat laporan, Anda menandai titik kejadian langsung di peta interaktif berbasis
+                            OpenStreetMap.
+                            Sistem otomatis mencocokkan titik tersebut dengan batas desa agar laporan sampai ke petugas
+                            yang tepat,
+                            tanpa tugas antarpetugas desa saling tercampur.
+                        </p>
+                        <ul class="space-y-3 pt-2">
+                            <li class="flex items-start gap-3 text-sm text-[var(--color-text)]/80">
+                                <i class="fa-solid fa-check text-[var(--color-secondary)] mt-1"
+                                    aria-hidden="true"></i>
+                                Titik koordinat presisi, bukan sekadar nama alamat
+                            </li>
+                            <li class="flex items-start gap-3 text-sm text-[var(--color-text)]/80">
+                                <i class="fa-solid fa-check text-[var(--color-secondary)] mt-1"
+                                    aria-hidden="true"></i>
+                                Penentuan desa otomatis dari lokasi yang ditandai
+                            </li>
+                            <li class="flex items-start gap-3 text-sm text-[var(--color-text)]/80">
+                                <i class="fa-solid fa-check text-[var(--color-secondary)] mt-1"
+                                    aria-hidden="true"></i>
+                                Petugas menerima laporan lengkap dengan titik lokasinya
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="lg:col-span-3">
+                        <div x-data="{ loaded: false, failed: false }" x-init="const timeoutId = setTimeout(() => { if (!loaded) failed = true }, 8000);
+                        $nextTick(() => {
+                            try {
+                                const map = L.map($refs.mapEl, { scrollWheelZoom: false }).setView([{{ $kecamatanCenter['lat'] }}, {{ $kecamatanCenter['lng'] }}], 13);
+                                const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                    attribution: '&copy; OpenStreetMap contributors',
+                                    maxZoom: 18,
+                                });
+                                tiles.on('load', () => { loaded = true;
+                                    clearTimeout(timeoutId); });
+                                tiles.addTo(map);
+                                L.marker([{{ $kecamatanCenter['lat'] }}, {{ $kecamatanCenter['lng'] }}]).addTo(map)
+                                    .bindPopup('Kantor {{ $kecamatanName }}').openPopup();
+                            } catch (e) { failed = true;
+                                clearTimeout(timeoutId); }
+                        })"
+                            class="relative w-full h-[360px] sm:h-[420px] rounded-[var(--radius-card)] overflow-hidden border border-[var(--color-border)] shadow-sm">
+
+                            <div x-show="!loaded && !failed"
+                                class="absolute inset-0 skeleton-shimmer flex items-center justify-center z-[1]">
+                                <span
+                                    class="text-xs font-medium text-[var(--color-text)]/50 bg-white/80 px-3 py-1.5 rounded-full">Memuat
+                                    peta&hellip;</span>
+                            </div>
+
+                            <div x-show="failed" x-cloak
+                                class="absolute inset-0 bg-[var(--color-bg)] flex flex-col items-center justify-center gap-2 text-center px-6 z-[1]">
+                                <i class="fa-solid fa-map-location-dot text-2xl text-[var(--color-text)]/30"
+                                    aria-hidden="true"></i>
+                                <p class="text-sm text-[var(--color-text)]/60">Peta tidak dapat dimuat. Periksa koneksi
+                                    internet Anda lalu muat ulang halaman.</p>
+                            </div>
+
+                            <div id="leaflet-map" x-ref="mapEl" class="w-full h-full"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- SECTION 7: KATEGORI PENGADUAN POPULER      -->
+        <!-- ========================================== -->
+        <section class="py-20 bg-white border-y border-[var(--color-border)]" x-data="{ selected: null }">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                <div class="text-center max-w-2xl mx-auto mb-16 space-y-3 reveal-up"
+                    x-intersect-once="$el.classList.add('is-visible')" x-data>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-[var(--color-text)]">Kategori Pengaduan</h2>
+                    <p class="text-sm sm:text-base text-[var(--color-text)]/70">Pilih kategori yang paling sesuai
+                        dengan masalah yang ingin Anda laporkan.</p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
 
-                    <!-- Category 1 -->
-                    <div
-                        class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl p-6 hover:border-[#2563EB] hover:scale-[1.02] transition duration-200 cursor-pointer text-center group">
+                    <button @click="selected = 'infrastruktur'"
+                        :aria-pressed="(selected === 'infrastruktur').toString()"
+                        class="bg-[var(--color-bg)] border rounded-[var(--radius-card)] p-6 hover:-translate-y-0.5 transition duration-200 text-center group"
+                        :class="selected === 'infrastruktur' ?
+                            'border-[var(--color-primary)] ring-1 ring-[var(--color-primary)]' :
+                            'border-[var(--color-border)] hover:border-[var(--color-primary)]'">
                         <div
-                            class="w-14 h-14 rounded-full bg-white border border-[#E2E8F0] text-[#2563EB] text-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[#2563EB] group-hover:text-white transition duration-200">
-                            <i class="fa-solid fa-road-bridge"></i>
+                            class="w-14 h-14 rounded-full bg-white border border-[var(--color-border)] text-[var(--color-primary)] text-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[var(--color-primary)] group-hover:text-white transition duration-200">
+                            <i class="fa-solid fa-road-bridge" aria-hidden="true"></i>
                         </div>
-                        <h4 class="text-base font-semibold text-[#1E293B] mb-1">Infrastruktur & Jalan</h4>
-                        <p class="text-xs text-[#1E293B]/60">Jalan berlubang, penerangan jalan mati</p>
-                    </div>
+                        <h4 class="text-base font-semibold text-[var(--color-text)] mb-1">Infrastruktur & Jalan</h4>
+                        <p class="text-xs text-[var(--color-text)]/60">Jalan berlubang, lampu jalan mati</p>
+                    </button>
 
-                    <!-- Category 2 -->
-                    <div
-                        class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl p-6 hover:border-[#2563EB] hover:scale-[1.02] transition duration-200 cursor-pointer text-center group">
+                    <button @click="selected = 'kebersihan'" :aria-pressed="(selected === 'kebersihan').toString()"
+                        class="bg-[var(--color-bg)] border rounded-[var(--radius-card)] p-6 hover:-translate-y-0.5 transition duration-200 text-center group"
+                        :class="selected === 'kebersihan' ?
+                            'border-[var(--color-secondary)] ring-1 ring-[var(--color-secondary)]' :
+                            'border-[var(--color-border)] hover:border-[var(--color-secondary)]'">
                         <div
-                            class="w-14 h-14 rounded-full bg-white border border-[#E2E8F0] text-[#10B981] text-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[#10B981] group-hover:text-white transition duration-200">
-                            <i class="fa-solid fa-trash-can"></i>
+                            class="w-14 h-14 rounded-full bg-white border border-[var(--color-border)] text-[var(--color-secondary)] text-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[var(--color-secondary)] group-hover:text-white transition duration-200">
+                            <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
                         </div>
-                        <h4 class="text-base font-semibold text-[#1E293B] mb-1">Kebersihan & Lingkungan</h4>
-                        <p class="text-xs text-[#1E293B]/60">Sampah menumpuk, saluran air tumpat</p>
-                    </div>
+                        <h4 class="text-base font-semibold text-[var(--color-text)] mb-1">Kebersihan Lingkungan</h4>
+                        <p class="text-xs text-[var(--color-text)]/60">Sampah menumpuk, saluran air tersumbat</p>
+                    </button>
 
-                    <!-- Category 3 -->
-                    <div
-                        class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl p-6 hover:border-[#2563EB] hover:scale-[1.02] transition duration-200 cursor-pointer text-center group">
+                    <button @click="selected = 'ketertiban'" :aria-pressed="(selected === 'ketertiban').toString()"
+                        class="bg-[var(--color-bg)] border rounded-[var(--radius-card)] p-6 hover:-translate-y-0.5 transition duration-200 text-center group"
+                        :class="selected === 'ketertiban' ? 'border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]' :
+                            'border-[var(--color-border)] hover:border-[var(--color-accent)]'">
                         <div
-                            class="w-14 h-14 rounded-full bg-white border border-[#E2E8F0] text-[#F59E0B] text-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[#F59E0B] group-hover:text-white transition duration-200">
-                            <i class="fa-solid fa-shield"></i>
+                            class="w-14 h-14 rounded-full bg-white border border-[var(--color-border)] text-[var(--color-accent)] text-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[var(--color-accent)] group-hover:text-white transition duration-200">
+                            <i class="fa-solid fa-shield" aria-hidden="true"></i>
                         </div>
-                        <h4 class="text-base font-semibold text-[#1E293B] mb-1">Ketertiban Umum</h4>
-                        <p class="text-xs text-[#1E293B]/60">Gangguan ketertiban, pedagang liar</p>
-                    </div>
+                        <h4 class="text-base font-semibold text-[var(--color-text)] mb-1">Ketertiban Umum</h4>
+                        <p class="text-xs text-[var(--color-text)]/60">Gangguan ketertiban, pedagang liar</p>
+                    </button>
 
-                    <!-- Category 4 -->
-                    <div
-                        class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl p-6 hover:border-[#2563EB] hover:scale-[1.02] transition duration-200 cursor-pointer text-center group">
+                    <button @click="selected = 'pelayanan'" :aria-pressed="(selected === 'pelayanan').toString()"
+                        class="bg-[var(--color-bg)] border rounded-[var(--radius-card)] p-6 hover:-translate-y-0.5 transition duration-200 text-center group"
+                        :class="selected === 'pelayanan' ? 'border-[var(--color-info)] ring-1 ring-[var(--color-info)]' :
+                            'border-[var(--color-border)] hover:border-[var(--color-info)]'">
                         <div
-                            class="w-14 h-14 rounded-full bg-white border border-[#E2E8F0] text-[#3B82F6] text-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[#3B82F6] group-hover:text-white transition duration-200">
-                            <i class="fa-solid fa-hospital-user"></i>
+                            class="w-14 h-14 rounded-full bg-white border border-[var(--color-border)] text-[var(--color-info)] text-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[var(--color-info)] group-hover:text-white transition duration-200">
+                            <i class="fa-solid fa-hospital-user" aria-hidden="true"></i>
                         </div>
-                        <h4 class="text-base font-semibold text-[#1E293B] mb-1">Pelayanan Publik</h4>
-                        <p class="text-xs text-[#1E293B]/60">Layanan administrasi, fasilitas kesehatan</p>
-                    </div>
+                        <h4 class="text-base font-semibold text-[var(--color-text)] mb-1">Pelayanan Publik</h4>
+                        <p class="text-xs text-[var(--color-text)]/60">Layanan administrasi, fasilitas kesehatan</p>
+                    </button>
 
-                    <!-- Category 5 -->
-                    <div
-                        class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl p-6 hover:border-[#2563EB] hover:scale-[1.02] transition duration-200 cursor-pointer text-center group sm:col-span-2 lg:col-span-1">
+                    <button @click="selected = 'lainnya'" :aria-pressed="(selected === 'lainnya').toString()"
+                        class="bg-[var(--color-bg)] border rounded-[var(--radius-card)] p-6 hover:-translate-y-0.5 transition duration-200 text-center group sm:col-span-2 lg:col-span-1"
+                        :class="selected === 'lainnya' ? 'border-[var(--color-text)] ring-1 ring-[var(--color-text)]' :
+                            'border-[var(--color-border)] hover:border-[var(--color-text)]'">
                         <div
-                            class="w-14 h-14 rounded-full bg-white border border-[#E2E8F0] text-[#1E293B] text-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[#1E293B] group-hover:text-white transition duration-200">
-                            <i class="fa-solid fa-comments"></i>
+                            class="w-14 h-14 rounded-full bg-white border border-[var(--color-border)] text-[var(--color-text)] text-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[var(--color-text)] group-hover:text-white transition duration-200">
+                            <i class="fa-solid fa-comments" aria-hidden="true"></i>
                         </div>
-                        <h4 class="text-base font-semibold text-[#1E293B] mb-1">Lainnya / Aspirasi</h4>
-                        <p class="text-xs text-[#1E293B]/60">Pertanyaan dan aspirasi umum warga</p>
-                    </div>
+                        <h4 class="text-base font-semibold text-[var(--color-text)] mb-1">Lainnya / Aspirasi</h4>
+                        <p class="text-xs text-[var(--color-text)]/60">Pertanyaan dan aspirasi umum warga</p>
+                    </button>
 
+                </div>
+
+                <div x-show="selected" x-cloak x-transition
+                    class="mt-8 max-w-xl mx-auto text-center bg-[var(--color-bg)] border border-[var(--color-border)] rounded-[var(--radius-card)] p-5">
+                    <p class="text-sm text-[var(--color-text)]/70 mb-3">Siap melaporkan masalah kategori ini?</p>
+                    <a href="{{ route('register') }}"
+                        class="inline-flex items-center gap-2 px-6 py-3 rounded-[var(--radius-btn)] bg-[var(--color-primary)] text-white text-sm font-medium hover:bg-[var(--color-primary-dark)] transition duration-200">
+                        <i class="fa-solid fa-plus-circle" aria-hidden="true"></i> Buat Laporan Sekarang
+                    </a>
                 </div>
             </div>
         </section>
 
         <!-- ========================================== -->
-        <!-- SECTION 6: ADUAN PUBLIK TERBARU            -->
+        <!-- SECTION 8: ADUAN PUBLIK TERBARU            -->
         <!-- ========================================== -->
-        <section id="aduan-publik" class="py-20 bg-[#F8FAFC]">
+        <section id="aduan-publik" class="py-20 scroll-mt-20">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-                <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+                <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
                     <div>
-                        <h2 class="text-2xl sm:text-3xl font-bold text-[#1E293B] mb-2">Transparansi Aduan Publik
-                            Terbaru</h2>
-                        <p class="text-sm sm:text-base text-[#1E293B]/70">Laporan nyata dari masyarakat yang sedang dan
-                            telah ditangani.</p>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-[var(--color-text)] mb-2">Transparansi Aduan
+                            Publik</h2>
+                        <p class="text-sm sm:text-base text-[var(--color-text)]/70">Laporan nyata dari warga yang
+                            sedang dan telah ditangani petugas desa.</p>
                     </div>
-                    <a href="#"
-                        class="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:underline">
-                        Lihat Seluruh Laporan Publik <i class="fa-solid fa-arrow-right"></i>
-                    </a>
                 </div>
 
-                <div class="grid md:grid-cols-3 gap-6 mb-12">
-
-                    <!-- Card 1 -->
-                    <div
-                        class="bg-white border border-[#E2E8F0] rounded-2xl p-6 hover:shadow-md transition duration-200 flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center justify-between gap-2 mb-4">
-                                <span
-                                    class="px-3 py-1 rounded-full bg-[#2563EB]/10 text-[#2563EB] text-xs font-medium">Infrastruktur</span>
-                                <span
-                                    class="px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">Selesai</span>
-                            </div>
-                            <div class="text-xs text-[#1E293B]/50 font-medium mb-2">ADU-20260804-0012 • 4 Agu 2026
-                            </div>
-                            <h3 class="text-base font-semibold text-[#1E293B] mb-2 line-clamp-1">Perbaikan Lampu Jalan
-                                Utama Blok A</h3>
-                            <p class="text-sm text-[#1E293B]/70 line-clamp-2 mb-4">Lampu penerangan jalan padam sejak 2
-                                hari lalu sehingga mengganggu kenyamanan dan keselamatan warga.</p>
-
-                            <!-- Officer Response Snippet -->
-                            <div
-                                class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 text-xs text-[#1E293B]/80 mb-4">
-                                <span class="font-semibold text-[#2563EB]">Tanggapan Petugas:</span> Lampu pengganti
-                                telah dipasang oleh Tim Dinas Perhubungan.
-                            </div>
-                        </div>
-                        <div
-                            class="pt-4 border-t border-[#E2E8F0] flex items-center justify-between text-xs text-[#1E293B]/60">
-                            <span>Pelapor: <strong>Anonim</strong></span>
-                            <span><i class="fa-solid fa-location-dot text-[#EF4444]"></i> Mojokerto</span>
-                        </div>
+                <div x-data="{ filter: 'all' }" class="space-y-8">
+                    <!-- Filter Tabs -->
+                    <div class="flex flex-wrap gap-2" role="tablist" aria-label="Filter status aduan">
+                        <button @click="filter = 'all'" role="tab"
+                            :aria-selected="(filter === 'all').toString()"
+                            class="px-4 py-2 rounded-[var(--radius-badge)] text-xs font-semibold border transition duration-200"
+                            :class="filter === 'all' ? 'bg-[var(--color-text)] border-[var(--color-text)] text-white' :
+                                'bg-white border-[var(--color-border)] text-[var(--color-text)]/70 hover:border-[var(--color-text)]'">
+                            Semua
+                        </button>
+                        <button @click="filter = 'processed'" role="tab"
+                            :aria-selected="(filter === 'processed').toString()"
+                            class="px-4 py-2 rounded-[var(--radius-badge)] text-xs font-semibold border transition duration-200"
+                            :class="filter === 'processed' ? 'bg-[var(--color-info)] border-[var(--color-info)] text-white' :
+                                'bg-white border-[var(--color-border)] text-[var(--color-text)]/70 hover:border-[var(--color-info)]'">
+                            Diproses
+                        </button>
+                        <button @click="filter = 'completed'" role="tab"
+                            :aria-selected="(filter === 'completed').toString()"
+                            class="px-4 py-2 rounded-[var(--radius-badge)] text-xs font-semibold border transition duration-200"
+                            :class="filter === 'completed' ?
+                                'bg-[var(--color-secondary)] border-[var(--color-secondary)] text-white' :
+                                'bg-white border-[var(--color-border)] text-[var(--color-text)]/70 hover:border-[var(--color-secondary)]'">
+                            Selesai
+                        </button>
                     </div>
 
-                    <!-- Card 2 -->
-                    <div
-                        class="bg-white border border-[#E2E8F0] rounded-2xl p-6 hover:shadow-md transition duration-200 flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center justify-between gap-2 mb-4">
-                                <span
-                                    class="px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-xs font-medium">Kebersihan</span>
-                                <span
-                                    class="px-3 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B] text-xs font-semibold">Diproses</span>
-                            </div>
-                            <div class="text-xs text-[#1E293B]/50 font-medium mb-2">ADU-20260804-0015 • 4 Agu 2026
-                            </div>
-                            <h3 class="text-base font-semibold text-[#1E293B] mb-2 line-clamp-1">Tumpukan Sampah Liar
-                                di Jalan Raya</h3>
-                            <p class="text-sm text-[#1E293B]/70 line-clamp-2 mb-4">Adanya tumpukan sampah liar yang
-                                menumpuk di pinggir jalan dan menimbulkan bau tidak sedap.</p>
-
-                            <!-- Officer Response Snippet -->
-                            <div
-                                class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 text-xs text-[#1E293B]/80 mb-4">
-                                <span class="font-semibold text-[#2563EB]">Tanggapan Petugas:</span> Jadwal
-                                pengangkutan armada kebersihan telah didisposisikan.
-                            </div>
-                        </div>
+                    @if ($recentComplaints->isEmpty())
+                        <!-- Empty state -->
                         <div
-                            class="pt-4 border-t border-[#E2E8F0] flex items-center justify-between text-xs text-[#1E293B]/60">
-                            <span>Pelapor: <strong>Masyarakat</strong></span>
-                            <span><i class="fa-solid fa-location-dot text-[#EF4444]"></i> Mojokerto</span>
+                            class="bg-white border border-dashed border-[var(--color-border)] rounded-[var(--radius-card)] p-12 text-center">
+                            <i class="fa-solid fa-inbox text-3xl text-[var(--color-text)]/20 mb-3"
+                                aria-hidden="true"></i>
+                            <p class="text-sm text-[var(--color-text)]/60">Belum ada laporan publik yang dapat
+                                ditampilkan saat ini.</p>
                         </div>
-                    </div>
+                    @else
+                        <div class="grid md:grid-cols-3 gap-6">
+                            @foreach ($recentComplaints->take(6) as $item)
+                                @php
+                                    $statusKey = $item['status'] ?? 'processed';
+                                    $meta = $statusLabel[$statusKey] ?? $statusLabel['processed'];
+                                @endphp
+                                <div x-show="filter === 'all' || filter === '{{ $statusKey }}'"
+                                    class="bg-white border border-[var(--color-border)] rounded-[var(--radius-card)] p-6 hover:shadow-md transition duration-200 flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center justify-between gap-2 mb-4">
+                                            <span
+                                                class="px-3 py-1 rounded-[var(--radius-badge)] bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-xs font-medium">{{ $item['category'] ?? 'Umum' }}</span>
+                                            <span class="px-3 py-1 rounded-[var(--radius-badge)] text-xs font-semibold"
+                                                style="background-color:{{ $meta['bg'] }}; color:{{ $meta['color'] }}">{{ $meta['label'] }}</span>
+                                        </div>
+                                        <div class="text-xs text-[var(--color-text)]/50 font-medium mb-2">
+                                            {{ $item['code'] ?? '-' }} &bull; {{ $item['date'] ?? '-' }}</div>
+                                        <h3 class="text-base font-semibold text-[var(--color-text)] mb-2 line-clamp-1">
+                                            {{ $item['title'] ?? 'Laporan Warga' }}</h3>
+                                        <p class="text-sm text-[var(--color-text)]/70 line-clamp-2 mb-4">
+                                            {{ $item['description'] ?? '' }}</p>
 
-                    <!-- Card 3 -->
-                    <div
-                        class="bg-white border border-[#E2E8F0] rounded-2xl p-6 hover:shadow-md transition duration-200 flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center justify-between gap-2 mb-4">
-                                <span
-                                    class="px-3 py-1 rounded-full bg-[#2563EB]/10 text-[#2563EB] text-xs font-medium">Infrastruktur</span>
-                                <span
-                                    class="px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">Selesai</span>
-                            </div>
-                            <div class="text-xs text-[#1E293B]/50 font-medium mb-2">ADU-20260803-0008 • 3 Agu 2026
-                            </div>
-                            <h3 class="text-base font-semibold text-[#1E293B] mb-2 line-clamp-1">Penutupan Lubang Jalan
-                                Berbahaya</h3>
-                            <p class="text-sm text-[#1E293B]/70 line-clamp-2 mb-4">Lubang cukup dalam di pertigaan
-                                jalan utama yang berisiko menyebabkan kecelakaan berkendara.</p>
-
-                            <!-- Officer Response Snippet -->
-                            <div
-                                class="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 text-xs text-[#1E293B]/80 mb-4">
-                                <span class="font-semibold text-[#2563EB]">Tanggapan Petugas:</span> Penambalan aspal
-                                telah selesai dikerjakan oleh tim teknis.
-                            </div>
+                                        @if (!empty($item['response']))
+                                            <div
+                                                class="bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl p-3 text-xs text-[var(--color-text)]/80 mb-4">
+                                                <span class="font-semibold text-[var(--color-primary)]">Tanggapan
+                                                    Petugas:</span> {{ $item['response'] }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div
+                                        class="pt-4 border-t border-[var(--color-border)] flex items-center justify-between text-xs text-[var(--color-text)]/60">
+                                        <span>Pelapor: <strong>{{ $item['reporter'] ?? 'Anonim' }}</strong></span>
+                                        <span><i class="fa-solid fa-location-dot text-[var(--color-error)]"
+                                                aria-hidden="true"></i>
+                                            {{ $item['village'] ?? $kecamatanName }}</span>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
-                        <div
-                            class="pt-4 border-t border-[#E2E8F0] flex items-center justify-between text-xs text-[#1E293B]/60">
-                            <span>Pelapor: <strong>Anonim</strong></span>
-                            <span><i class="fa-solid fa-location-dot text-[#EF4444]"></i> Mojokerto</span>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="text-center">
-                    <a href="#"
-                        class="inline-flex items-center justify-center px-6 py-3 rounded-xl border border-[#2563EB] text-[#2563EB] font-medium text-sm hover:bg-[#2563EB] hover:text-white transition duration-200">
-                        Lihat Seluruh Laporan Publik <i class="fa-solid fa-arrow-right ml-2"></i>
-                    </a>
+                    @endif
                 </div>
 
             </div>
         </section>
 
         <!-- ========================================== -->
-        <!-- SECTION 7: KEUNGGULAN & JAMINAN            -->
+        <!-- SECTION 9: KEUNGGULAN & JAMINAN            -->
         <!-- ========================================== -->
-        <section class="py-20 bg-white border-t border-[#E2E8F0]">
+        <section class="py-20 bg-white border-t border-[var(--color-border)]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="grid md:grid-cols-3 gap-8">
 
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 reveal-up" x-intersect-once="$el.classList.add('is-visible')" x-data>
                         <div
-                            class="w-12 h-12 rounded-xl bg-[#2563EB]/10 text-[#2563EB] flex items-center justify-center text-xl shrink-0">
-                            <i class="fa-solid fa-user-shield"></i>
+                            class="w-12 h-12 rounded-xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-[#1E293B] mb-2">Jaminan Privasi & Kerahasiaan</h3>
-                            <p class="text-sm text-[#1E293B]/70 leading-relaxed">Opsi anonim menjamin identitas pelapor
-                                tidak dipublikasikan ke umum demi keamanan Anda.</p>
+                            <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2">Jaminan Privasi</h3>
+                            <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Opsi anonim menjamin nama
+                                dan identitas pelapor tidak ditampilkan ke publik.</p>
                         </div>
                     </div>
 
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 reveal-up" style="transition-delay:80ms"
+                        x-intersect-once="$el.classList.add('is-visible')" x-data>
                         <div
-                            class="w-12 h-12 rounded-xl bg-[#F59E0B]/10 text-[#F59E0B] flex items-center justify-center text-xl shrink-0">
-                            <i class="fa-solid fa-bell"></i>
+                            class="w-12 h-12 rounded-xl bg-[var(--color-accent)]/10 text-[var(--color-accent)] flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-envelope-circle-check" aria-hidden="true"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-[#1E293B] mb-2">Notifikasi Real-time</h3>
-                            <p class="text-sm text-[#1E293B]/70 leading-relaxed">Dapatkan pembaruan status laporan
-                                secara langsung via Email setiap kali status diperbarui.</p>
+                            <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2">Notifikasi Email</h3>
+                            <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Pemberitahuan otomatis ke
+                                email Anda setiap kali status laporan berubah.</p>
                         </div>
                     </div>
 
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 reveal-up" style="transition-delay:160ms"
+                        x-intersect-once="$el.classList.add('is-visible')" x-data>
                         <div
-                            class="w-12 h-12 rounded-xl bg-[#10B981]/10 text-[#10B981] flex items-center justify-center text-xl shrink-0">
-                            <i class="fa-solid fa-square-check"></i>
+                            class="w-12 h-12 rounded-xl bg-[var(--color-secondary)]/10 text-[var(--color-secondary)] flex items-center justify-center text-xl shrink-0">
+                            <i class="fa-solid fa-square-check" aria-hidden="true"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-[#1E293B] mb-2">Akuntabilitas & Keterbukaan</h3>
-                            <p class="text-sm text-[#1E293B]/70 leading-relaxed">Setiap riwayat tindak lanjut disertai
-                                bukti foto pengerjaan transparan langsung dari tim lapangan.</p>
+                            <h3 class="text-lg font-semibold text-[var(--color-text)] mb-2">Bukti Foto Pengerjaan</h3>
+                            <p class="text-sm text-[var(--color-text)]/70 leading-relaxed">Setiap tindak lanjut
+                                disertai foto langsung dari tim lapangan, bukan sekadar keterangan tertulis.</p>
                         </div>
                     </div>
 
@@ -569,96 +1018,92 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- SECTION 8: FAQ (ACCORDION)                 -->
+        <!-- SECTION 10: FAQ (ACCORDION)                -->
         <!-- ========================================== -->
-        <section id="faq" class="py-20 bg-[#F8FAFC]">
+        <section id="faq" class="py-20 scroll-mt-20">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
-                <div class="text-center mb-16 space-y-3">
-                    <h2 class="text-2xl sm:text-3xl font-bold text-[#1E293B]">Pertanyaan Sering Diajukan (FAQ)</h2>
-                    <p class="text-sm sm:text-base text-[#1E293B]/70">Jawaban cepat untuk hal-hal yang sering
-                        ditanyakan warga.</p>
+                <div class="text-center mb-16 space-y-3 reveal-up" x-intersect-once="$el.classList.add('is-visible')"
+                    x-data>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-[var(--color-text)]">Pertanyaan Sering Diajukan</h2>
+                    <p class="text-sm sm:text-base text-[var(--color-text)]/70">Jawaban seputar pendaftaran, pelaporan,
+                        dan status aduan.</p>
                 </div>
 
-                <div class="space-y-4" x-data="{ active: null }">
+                <div class="space-y-3" x-data="{ active: null }">
 
-                    <!-- FAQ Item 1 -->
-                    <div class="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden shadow-sm">
-                        <button @click="active = (active === 1 ? null : 1)"
-                            class="w-full p-5 text-left font-semibold text-[#1E293B] flex justify-between items-center hover:bg-[#F8FAFC] transition duration-200">
-                            <span>Apakah laporan saya dipungut biaya?</span>
-                            <i class="fa-solid fa-chevron-down text-xs transition duration-200"
-                                :class="active === 1 ? 'rotate-180 text-[#2563EB]' : 'text-[#1E293B]/40'"></i>
-                        </button>
-                        <div x-show="active === 1" x-collapse
-                            class="px-5 pb-5 text-sm text-[#1E293B]/70 leading-relaxed border-t border-[#E2E8F0]/60 pt-3">
-                            Sama sekali tidak. Seluruh layanan pengaduan dan aspirasi masyarakat di platform E-Lapor
-                            100% gratis.
-                        </div>
-                    </div>
+                    @php
+                        $faqs = [
+                            [
+                                'q' => 'Apakah saya wajib memakai NIK untuk mendaftar?',
+                                'a' =>
+                                    'Ya. Registrasi warga memakai Nomor Induk Kependudukan (NIK) 16 digit beserta email aktif, untuk memastikan setiap laporan berasal dari warga yang terverifikasi.',
+                            ],
+                            [
+                                'q' => 'Bagaimana jika saya takut identitas saya tersebar?',
+                                'a' =>
+                                    'Aktifkan opsi Anonim saat membuat laporan. Nama dan data pribadi Anda tidak akan ditampilkan pada halaman Aduan Publik.',
+                            ],
+                            [
+                                'q' => 'Bagaimana sistem menentukan petugas yang menangani laporan saya?',
+                                'a' =>
+                                    'Sistem mendeteksi desa dari titik lokasi kejadian yang Anda tandai di peta, lalu meneruskan laporan ke petugas yang bertugas di desa tersebut, bukan berdasarkan desa tempat Anda terdaftar.',
+                            ],
+                            [
+                                'q' => 'Berapa lama laporan saya diproses?',
+                                'a' =>
+                                    'Verifikasi awal (diterima atau ditolak) dilakukan maksimal 24 jam. Penyelesaian masalah umumnya berkisar 1 sampai 7 hari kerja tergantung tingkat kerumitan di lapangan.',
+                            ],
+                            [
+                                'q' => 'Format dan ukuran foto apa saja yang didukung?',
+                                'a' =>
+                                    'Sistem menerima berkas foto berformat JPEG, PNG, atau WebP dengan ukuran maksimum 5MB per foto.',
+                            ],
+                            [
+                                'q' => 'Apakah layanan ini dipungut biaya?',
+                                'a' => 'Tidak. Seluruh layanan pelaporan di E-Lapor tidak dipungut biaya apa pun.',
+                            ],
+                        ];
+                    @endphp
 
-                    <!-- FAQ Item 2 -->
-                    <div class="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden shadow-sm">
-                        <button @click="active = (active === 2 ? null : 2)"
-                            class="w-full p-5 text-left font-semibold text-[#1E293B] flex justify-between items-center hover:bg-[#F8FAFC] transition duration-200">
-                            <span>Bagaimana jika saya takut identitas saya tersebar?</span>
-                            <i class="fa-solid fa-chevron-down text-xs transition duration-200"
-                                :class="active === 2 ? 'rotate-180 text-[#2563EB]' : 'text-[#1E293B]/40'"></i>
-                        </button>
-                        <div x-show="active === 2" x-collapse
-                            class="px-5 pb-5 text-sm text-[#1E293B]/70 leading-relaxed border-t border-[#E2E8F0]/60 pt-3">
-                            Tersedia fitur Centang Anonim saat membuat laporan. Nama dan data pribadi Anda akan
-                            disembunyikan sepenuhnya dari publik.
+                    @foreach ($faqs as $i => $faq)
+                        <div class="bg-white border border-[var(--color-border)] rounded-xl overflow-hidden shadow-sm">
+                            <button @click="active = (active === {{ $i }} ? null : {{ $i }})"
+                                :aria-expanded="(active === {{ $i }}).toString()"
+                                aria-controls="faq-panel-{{ $i }}"
+                                class="w-full p-5 text-left font-semibold text-[var(--color-text)] flex justify-between items-center gap-4 hover:bg-[var(--color-bg)] transition duration-200">
+                                <span>{{ $faq['q'] }}</span>
+                                <i class="fa-solid fa-chevron-down text-xs transition duration-200 shrink-0"
+                                    :class="active === {{ $i }} ? 'rotate-180 text-[var(--color-primary)]' :
+                                        'text-[var(--color-text)]/40'"
+                                    aria-hidden="true"></i>
+                            </button>
+                            <div id="faq-panel-{{ $i }}" x-show="active === {{ $i }}"
+                                x-collapse
+                                class="px-5 pb-5 text-sm text-[var(--color-text)]/70 leading-relaxed border-t border-[var(--color-border)]/60 pt-3">
+                                {{ $faq['a'] }}
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- FAQ Item 3 -->
-                    <div class="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden shadow-sm">
-                        <button @click="active = (active === 3 ? null : 3)"
-                            class="w-full p-5 text-left font-semibold text-[#1E293B] flex justify-between items-center hover:bg-[#F8FAFC] transition duration-200">
-                            <span>Berapa lama laporan saya akan diproses?</span>
-                            <i class="fa-solid fa-chevron-down text-xs transition duration-200"
-                                :class="active === 3 ? 'rotate-180 text-[#2563EB]' : 'text-[#1E293B]/40'"></i>
-                        </button>
-                        <div x-show="active === 3" x-collapse
-                            class="px-5 pb-5 text-sm text-[#1E293B]/70 leading-relaxed border-t border-[#E2E8F0]/60 pt-3">
-                            Proses verifikasi laporan dilakukan maksimal 24 jam. Sedangkan estimasi penyelesaian masalah
-                            berkisar antara 1 hingga 7 hari kerja tergantung tingkat kerumitan di lapangan.
-                        </div>
-                    </div>
-
-                    <!-- FAQ Item 4 -->
-                    <div class="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden shadow-sm">
-                        <button @click="active = (active === 4 ? null : 4)"
-                            class="w-full p-5 text-left font-semibold text-[#1E293B] flex justify-between items-center hover:bg-[#F8FAFC] transition duration-200">
-                            <span>Format dan ukuran foto apa saja yang didukung?</span>
-                            <i class="fa-solid fa-chevron-down text-xs transition duration-200"
-                                :class="active === 4 ? 'rotate-180 text-[#2563EB]' : 'text-[#1E293B]/40'"></i>
-                        </button>
-                        <div x-show="active === 4" x-collapse
-                            class="px-5 pb-5 text-sm text-[#1E293B]/70 leading-relaxed border-t border-[#E2E8F0]/60 pt-3">
-                            Sistem menerima berkas lampiran berformat JPEG, PNG, dan WebP dengan batas ukuran maksimum
-                            5MB per berkas foto.
-                        </div>
-                    </div>
+                    @endforeach
 
                 </div>
             </div>
         </section>
 
         <!-- ========================================== -->
-        <!-- SECTION 9: CALL TO ACTION BANNER           -->
+        <!-- SECTION 11: CALL TO ACTION BANNER          -->
         <!-- ========================================== -->
-        <section class="py-12 bg-[#F8FAFC]">
+        <section class="py-12">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="bg-[#2563EB] rounded-2xl p-8 sm:p-12 text-center text-white shadow-lg space-y-6">
+                <div
+                    class="bg-[var(--color-primary)] rounded-[var(--radius-modal)] p-8 sm:p-12 text-center text-white shadow-lg space-y-6">
                     <h2 class="text-2xl sm:text-4xl font-bold leading-tight">Menemukan Masalah di Lingkungan Anda?</h2>
-                    <p class="text-base sm:text-lg text-white/80 max-w-2xl mx-auto">Jangan ragu untuk melapor. Satu
-                        laporan Anda sangat berarti untuk perubahan yang lebih baik.</p>
+                    <p class="text-base sm:text-lg text-white/80 max-w-2xl mx-auto">Satu laporan yang Anda kirim
+                        membantu petugas desa memprioritaskan penanganan di wilayah Anda.</p>
                     <div class="pt-2">
-                        <a href="{{ route('login') }}"
-                            class="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-white text-[#2563EB] font-bold text-base hover:bg-slate-100 shadow transition duration-200">
-                            Laporkan Sekarang
+                        <a href="{{ route('register') }}"
+                            class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-[var(--radius-btn)] bg-white text-[var(--color-primary)] font-bold text-base hover:bg-slate-100 shadow transition duration-200">
+                            <i class="fa-solid fa-plus-circle" aria-hidden="true"></i> Laporkan Sekarang
                         </a>
                     </div>
                 </div>
@@ -667,88 +1112,111 @@
     </main>
 
     <!-- ========================================== -->
-    <!-- SECTION 10: FOOTER SECTION                 -->
+    <!-- SECTION 12: FOOTER                         -->
     <!-- ========================================== -->
-    <footer class="bg-white border-t border-[#E2E8F0] pt-16 pb-8 text-sm text-[#1E293B]">
+    <footer class="bg-white border-t border-[var(--color-border)] pt-16 pb-8 text-sm text-[var(--color-text)]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
 
-                <!-- Column 1: Info Instansi -->
                 <div class="space-y-4">
                     <div class="flex items-center gap-3">
                         <div
-                            class="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center text-white text-base">
-                            <i class="fa-solid fa-bullhorn"></i>
+                            class="w-8 h-8 bg-[var(--color-primary)] rounded-lg flex items-center justify-center text-white text-base">
+                            <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
                         </div>
-                        <span class="text-lg font-bold text-[#2563EB]">E-Lapor</span>
+                        <span class="text-lg font-bold text-[var(--color-primary)]">E-Lapor</span>
                     </div>
-                    <p class="text-xs text-[#1E293B]/70 leading-relaxed">
-                        Sistem layanan pengaduan dan aspirasi publik digital berbasis web terintegrasi demi mewujudkan
-                        transparansi pelayanan publik.
+                    <p class="text-xs text-[var(--color-text)]/70 leading-relaxed">
+                        Sistem pengaduan masyarakat digital tingkat kecamatan untuk mendukung transparansi dan kecepatan
+                        penanganan layanan publik.
                     </p>
-                    <div class="text-xs text-[#1E293B]/60 space-y-1">
-                        <p><i class="fa-solid fa-location-dot mr-1 text-[#2563EB]"></i> Jl. Pemuda No. 1, Mojokerto,
-                            Jawa Timur</p>
-                    </div>
+                    <p class="text-xs text-[var(--color-text)]/60">
+                        <i class="fa-solid fa-location-dot mr-1 text-[var(--color-primary)]" aria-hidden="true"></i>
+                        Kantor {{ $kecamatanName }}
+                    </p>
                 </div>
 
-                <!-- Column 2: Navigasi Cepat -->
                 <div>
-                    <h4 class="text-sm font-semibold text-[#1E293B] mb-4">Navigasi Cepat</h4>
-                    <ul class="space-y-2.5 text-xs text-[#1E293B]/70">
-                        <li><a href="#beranda" class="hover:text-[#2563EB] transition duration-200">Beranda</a></li>
-                        <li><a href="#cara-kerja" class="hover:text-[#2563EB] transition duration-200">Cara Kerja</a>
-                        </li>
-                        <li><a href="#aduan-publik" class="hover:text-[#2563EB] transition duration-200">Aduan
-                                Publik</a></li>
-                        <li><a href="#" class="hover:text-[#2563EB] transition duration-200">Kebijakan
-                                Privasi</a></li>
-                        <li><a href="#" class="hover:text-[#2563EB] transition duration-200">Syarat &amp;
-                                Ketentuan</a></li>
+                    <h4 class="text-sm font-semibold text-[var(--color-text)] mb-4">Navigasi Cepat</h4>
+                    <ul class="space-y-2.5 text-xs text-[var(--color-text)]/70">
+                        <li><a href="#beranda"
+                                class="hover:text-[var(--color-primary)] transition duration-200">Beranda</a></li>
+                        <li><a href="#alur-status"
+                                class="hover:text-[var(--color-primary)] transition duration-200">Alur Status</a></li>
+                        <li><a href="#cara-kerja"
+                                class="hover:text-[var(--color-primary)] transition duration-200">Cara Kerja</a></li>
+                        <li><a href="#aduan-publik"
+                                class="hover:text-[var(--color-primary)] transition duration-200">Aduan Publik</a></li>
+                        <li><a href="#faq"
+                                class="hover:text-[var(--color-primary)] transition duration-200">FAQ</a></li>
                     </ul>
                 </div>
 
-                <!-- Column 3: Kontak Layanan -->
                 <div>
-                    <h4 class="text-sm font-semibold text-[#1E293B] mb-4">Kontak Layanan</h4>
-                    <ul class="space-y-2.5 text-xs text-[#1E293B]/70">
-                        <li><i class="fa-solid fa-envelope mr-1 text-[#2563EB]"></i> support@elapor.go.id</li>
-                        <li><i class="fa-solid fa-phone mr-1 text-[#2563EB]"></i> (0321) 123-4567 / WhatsApp</li>
-                        <li><i class="fa-solid fa-clock mr-1 text-[#2563EB]"></i> Senin - Jumat (08.00 - 16.00 WIB)
+                    <h4 class="text-sm font-semibold text-[var(--color-text)] mb-4">Akun</h4>
+                    <ul class="space-y-2.5 text-xs text-[var(--color-text)]/70">
+                        <li><a href="{{ route('login') }}"
+                                class="hover:text-[var(--color-primary)] transition duration-200">Masuk Warga</a></li>
+                        <li><a href="{{ route('register') }}"
+                                class="hover:text-[var(--color-primary)] transition duration-200">Daftar Akun Warga</a>
                         </li>
                     </ul>
                 </div>
 
-                <!-- Column 4: Sosial Media -->
                 <div>
-                    <h4 class="text-sm font-semibold text-[#1E293B] mb-4">Sosial Media</h4>
-                    <div class="flex gap-3">
-                        <a href="#"
-                            class="w-9 h-9 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center text-[#1E293B] hover:bg-[#2563EB] hover:text-white transition duration-200">
-                            <i class="fa-brands fa-instagram"></i>
-                        </a>
-                        <a href="#"
-                            class="w-9 h-9 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center text-[#1E293B] hover:bg-[#2563EB] hover:text-white transition duration-200">
-                            <i class="fa-brands fa-x-twitter"></i>
-                        </a>
-                        <a href="#"
-                            class="w-9 h-9 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center text-[#1E293B] hover:bg-[#2563EB] hover:text-white transition duration-200">
-                            <i class="fa-brands fa-facebook"></i>
-                        </a>
-                        <a href="#"
-                            class="w-9 h-9 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center text-[#1E293B] hover:bg-[#2563EB] hover:text-white transition duration-200">
-                            <i class="fa-brands fa-youtube"></i>
-                        </a>
-                    </div>
+                    <h4 class="text-sm font-semibold text-[var(--color-text)] mb-4">Kontak Layanan</h4>
+                    <ul class="space-y-2.5 text-xs text-[var(--color-text)]/70">
+                        <li><i class="fa-solid fa-envelope mr-1 text-[var(--color-primary)]" aria-hidden="true"></i>
+                            support@elapor.go.id</li>
+                        <li><i class="fa-solid fa-clock mr-1 text-[var(--color-primary)]" aria-hidden="true"></i>
+                            Senin&ndash;Jumat, 08.00&ndash;16.00 WIB</li>
+                    </ul>
                 </div>
 
             </div>
 
-            <div class="pt-8 border-t border-[#E2E8F0] text-center text-xs text-[#1E293B]/50">
-                &copy; 2026 E-Lapor. Hak Cipta Dilindungi Undang-Undang.
+            <div
+                class="pt-8 border-t border-[var(--color-border)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--color-text)]/50">
+                <span>&copy; {{ now()->year }} E-Lapor. Hak Cipta Dilindungi Undang-Undang.</span>
+                <span>Dikelola oleh Pemerintah {{ $kecamatanName }}</span>
             </div>
         </div>
     </footer>
+
+    <!-- LeafletJS script -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // Directive x-intersect-once: menjalankan ekspresi sekali saat elemen
+        // pertama kali terlihat di viewport. Dipakai selektif untuk reveal
+        // dan animasi hitung-naik statistik, bukan dipasang di semua elemen.
+        document.addEventListener('alpine:init', () => {
+            Alpine.directive('intersect-once', (el, {
+                expression
+            }, {
+                evaluate,
+                cleanup
+            }) => {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting) {
+                            evaluate(expression);
+                            observer.unobserve(el);
+                        }
+                    });
+                }, {
+                    threshold: 0.2
+                });
+                observer.observe(el);
+                cleanup(() => observer.disconnect());
+            });
+        });
+
+        // Catatan: scrollspy navbar diinisialisasi langsung lewat x-init pada <body>
+        // (lihat atas), sehingga activeSection tetap berada dalam satu scope Alpine
+        // yang sama dengan state mobileMenuOpen.
+    </script>
 
 </body>
 

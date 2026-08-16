@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DesaController;
+use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Warga\DashboardController as WargaDashboardController;
@@ -26,6 +27,11 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::patch('user/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('user.toggle-status');
     // MasterDesa
     Route::resource('desa', DesaController::class);
+    // Profile
+    Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::delete('profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 // Warga Page

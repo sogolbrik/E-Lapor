@@ -87,7 +87,7 @@ class AuthController extends Controller
                 $redirectRoute = '/admin/dashboard';
                 // } elseif ($user->role === 'Petugas') {
                 //     $redirectRoute = '/b';
-            } elseif ($user->role === 'warga') {
+            } elseif ($user->role === 'Warga') {
                 $redirectRoute = '/warga/dashboard';
             }
             return redirect()->intended($redirectRoute)->with('success', 'Selamat datang kembali, ' . $user->name . '!');

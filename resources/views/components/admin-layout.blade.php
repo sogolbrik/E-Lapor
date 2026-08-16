@@ -75,7 +75,7 @@
                             <i class="fa-solid fa-users w-5 text-center text-base"></i>
                             <span>Manajemen User</span>
                         </a>
-                        
+
                         <a href="{{ route('admin.desa.index') }}"
                             class="{{ request()->routeIs('admin.desa.*') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }} group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition">
                             <i class="fa-solid fa-location-dot w-5 text-center text-base"></i>
@@ -95,7 +95,7 @@
                         Pengaturan
                     </p>
                     <div class="space-y-1">
-                        <a href="#"
+                        <a href="{{ route('admin.profile.edit') }}"
                             class="{{ request()->routeIs('admin.profile.*') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }} group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition">
                             <i class="fa-solid fa-user-gear w-5 text-center text-base"></i>
                             <span>Profil Admin</span>
@@ -108,8 +108,13 @@
             <div class="shrink-0 border-t border-slate-100 p-4">
                 <div class="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
                     <div
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">
-                        A
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full overflow-hidden bg-blue-100">
+                        @if (auth()->user()->avatar)
+                            <img src="{{ Storage::url(auth()->user()->avatar) }}"
+                                alt="{{ auth()->user()->name }}" class="h-full w-full object-cover">
+                        @else
+                            <span class="text-sm font-bold text-blue-600">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</span>
+                        @endif
                     </div>
                     <div class="min-w-0 flex-1">
                         <p class="truncate text-sm font-semibold text-slate-700">
@@ -163,8 +168,13 @@
                         <button @click="dropdownOpen = !dropdownOpen" @click.away="dropdownOpen = false" type="button"
                             class="flex items-center gap-3 rounded-xl p-1.5 transition hover:bg-slate-100 focus:outline-none">
                             <div
-                                class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600 ring-2 ring-blue-500/20">
-                                A
+                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full overflow-hidden bg-blue-100 ring-2 ring-blue-500/20">
+                                @if (auth()->user()->avatar)
+                                    <img src="{{ Storage::url(auth()->user()->avatar) }}"
+                                        alt="{{ auth()->user()->name }}" class="h-full w-full object-cover">
+                                @else
+                                    <span class="text-sm font-bold text-blue-600">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</span>
+                                @endif
                             </div>
                             <div class="hidden text-left sm:block">
                                 <p class="text-xs font-semibold text-slate-700 leading-tight">
@@ -180,7 +190,8 @@
                         <div x-show="dropdownOpen" x-cloak x-transition:enter="transition ease-out duration-150"
                             x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                             x-transition:leave="transition ease-in duration-100"
-                            x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
                             class="absolute right-0 mt-2 w-48 origin-top-right rounded-2xl border border-slate-100 bg-white p-2 shadow-xl ring-1 ring-slate-900/5 focus:outline-none z-50">
 
                             <div class="px-3 py-2 border-b border-slate-100 sm:hidden">
@@ -189,7 +200,7 @@
                                 <p class="text-[11px] text-slate-400">{{ auth()->user()->Role ?? 'Admin' }}</p>
                             </div>
 
-                            <a href="#"
+                            <a href="{{ route('admin.profile.edit') }}"
                                 class="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition">
                                 <i class="fa-solid fa-user-gear w-4 text-center"></i>
                                 <span>Profil Saya</span>
