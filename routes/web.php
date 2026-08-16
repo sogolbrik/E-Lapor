@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DesaController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Warga\DashboardController as WargaDashboardController;
@@ -20,8 +21,11 @@ Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 // Admin Page
 Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // MasterUser
     Route::resource('user', UserController::class);
     Route::patch('user/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('user.toggle-status');
+    // MasterDesa
+    Route::resource('desa', DesaController::class);
 });
 
 // Warga Page
