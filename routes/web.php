@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DesaController;
+use App\Http\Controllers\Admin\KategoriAduanController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Warga\AduanController;
 use App\Http\Controllers\Warga\DashboardController as WargaDashboardController;
+use App\Http\Controllers\Warga\PengaduanController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -27,6 +30,9 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::patch('user/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('user.toggle-status');
     // MasterDesa
     Route::resource('desa', DesaController::class);
+    // MasterKategoriAduan
+    Route::resource('kategori/aduan', KategoriAduanController::class)->names('kategori.aduan');
+    Route::patch('kategori/aduan/{id}/status', [KategoriAduanController::class, 'toggleStatus'])->name('kategori.aduan.status');
     // Profile
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -37,4 +43,6 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
 // Warga Page
 Route::middleware('warga')->prefix('warga')->name('warga.')->group(function () {
     Route::get('dashboard', [WargaDashboardController::class, 'index'])->name('dashboard');
+    Route::get('pengaduan/buat', [PengaduanController::class, 'create'])->name('pengaduan.create');
+    Route::post('pengaduan/buat', [PengaduanController::class, 'store'])->name('pengaduan.store');
 });

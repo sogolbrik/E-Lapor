@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title ?? 'Admin Dashboard' }} - E-Lapor</title>
+    <title>{{ $title ?? 'Admin Page' }} | E-Lapor</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,9 +83,15 @@
                         </a>
 
                         <a href="#"
-                            class="{{ request()->routeIs('admin.pengaduan.*') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }} group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition">
+                            class="{{ request()->routeIs('admin.aduan.*') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }} group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition">
                             <i class="fa-solid fa-file-circle-exclamation w-5 text-center text-base"></i>
                             <span>Manajemen Pengaduan</span>
+                        </a>
+
+                        <a href="{{ route('admin.kategori.aduan.index') }}"
+                            class="{{ request()->routeIs('admin.kategori.aduan.*') ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }} group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition">
+                            <i class="fa-solid fa-tags w-5 text-center text-base"></i>
+                            <span>Manajemen Kategori Pengaduan</span>
                         </a>
                     </div>
                 </div>
@@ -110,10 +116,11 @@
                     <div
                         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full overflow-hidden bg-blue-100">
                         @if (auth()->user()->avatar)
-                            <img src="{{ Storage::url(auth()->user()->avatar) }}"
-                                alt="{{ auth()->user()->name }}" class="h-full w-full object-cover">
+                            <img src="{{ Storage::url(auth()->user()->avatar) }}" alt="{{ auth()->user()->name }}"
+                                class="h-full w-full object-cover">
                         @else
-                            <span class="text-sm font-bold text-blue-600">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</span>
+                            <span
+                                class="text-sm font-bold text-blue-600">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</span>
                         @endif
                     </div>
                     <div class="min-w-0 flex-1">
@@ -173,13 +180,15 @@
                                     <img src="{{ Storage::url(auth()->user()->avatar) }}"
                                         alt="{{ auth()->user()->name }}" class="h-full w-full object-cover">
                                 @else
-                                    <span class="text-sm font-bold text-blue-600">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</span>
+                                    <span
+                                        class="text-sm font-bold text-blue-600">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</span>
                                 @endif
                             </div>
                             <div class="hidden text-left sm:block">
                                 <p class="text-xs font-semibold text-slate-700 leading-tight">
                                     {{ auth()->user()->name ?? 'Administrator' }}</p>
-                                <p class="text-[11px] text-slate-400 font-medium">{{ auth()->user()->role ?? 'Admin' }}
+                                <p class="text-[11px] text-slate-400 font-medium">
+                                    {{ auth()->user()->role ?? 'Admin' }}
                                 </p>
                             </div>
                             <i class="fa-solid fa-chevron-down hidden text-xs text-slate-400 sm:block transition-transform duration-200"
@@ -188,7 +197,8 @@
 
                         {{-- Dropdown Menu --}}
                         <div x-show="dropdownOpen" x-cloak x-transition:enter="transition ease-out duration-150"
-                            x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:enter-start="opacity-0 scale-95"
+                            x-transition:enter-end="opacity-100 scale-100"
                             x-transition:leave="transition ease-in duration-100"
                             x-transition:leave-start="opacity-100 scale-100"
                             x-transition:leave-end="opacity-0 scale-95"
