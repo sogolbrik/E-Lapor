@@ -1,27 +1,16 @@
-import Alpine from 'alpinejs'
+import Alpine from 'alpinejs';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-window.Alpine = Alpine
-
-Alpine.start()
-
-// Import Leaflet CSS and JS (ensure these are included in your HTML or bundled appropriately)
-// Initialize Leaflet map instance
-let map;
-function initLeafletMap(containerId = 'map', lat = -6.2, lng = 106.8, zoom = 13) {
-    // Create map container
-    map = L.map(containerId).setView([lat, lng], zoom);
-
-    // Add OpenStreetMap tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
-    return map;
-}
-
-// Initialize map when Alpine is ready
-Alpine.effect(() => {
-    if (document.getElementById('map')) {
-        initLeafletMap();
-    }
+// Fix Bug Asset Path Marker Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
+
+window.L = L;
+window.Alpine = Alpine;
+
+Alpine.start();

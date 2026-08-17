@@ -16,15 +16,29 @@
             </div>
         </div>
 
+        {{-- Display Global Validation Errors --}}
+        @if ($errors->any())
+            <div class="p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs space-y-1">
+                <p class="font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Mohon periksa kembali inputan Anda:</span>
+                </p>
+                <ul class="list-disc list-inside pl-2 space-y-0.5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         {{-- Step Progress Bar --}}
         <div class="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-xs">
             <div class="flex items-center justify-between relative">
-                {{-- Connector Line --}}
                 <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-0.5 bg-slate-200 z-0"></div>
                 <div class="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-blue-600 transition-all duration-300 z-0"
                     :style="`width: ${((step - 1) / 2) * 100}%`"></div>
 
-                {{-- Step 1 Indicator --}}
+                {{-- Step 1 --}}
                 <div class="relative z-10 flex flex-col items-center gap-1.5 bg-white px-2">
                     <button type="button" @click="goToStep(1)"
                         :class="step >= 1 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'"
@@ -40,7 +54,7 @@
                         :class="step >= 1 ? 'text-blue-700' : 'text-slate-500'">Detail Aduan</span>
                 </div>
 
-                {{-- Step 2 Indicator --}}
+                {{-- Step 2 --}}
                 <div class="relative z-10 flex flex-col items-center gap-1.5 bg-white px-2">
                     <button type="button" @click="goToStep(2)"
                         :class="step >= 2 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'"
@@ -56,7 +70,7 @@
                         :class="step >= 2 ? 'text-blue-700' : 'text-slate-500'">Lokasi Kejadian</span>
                 </div>
 
-                {{-- Step 3 Indicator --}}
+                {{-- Step 3 --}}
                 <div class="relative z-10 flex flex-col items-center gap-1.5 bg-white px-2">
                     <button type="button" @click="goToStep(3)"
                         :class="step >= 3 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'"
@@ -69,8 +83,9 @@
             </div>
         </div>
 
-        {{-- Form Container --}}
-        <form action="#" method="POST" enctype="multipart/form-data" class="space-y-6">
+        {{-- Native Form Blade --}}
+        <form action="{{ route('warga.pengaduan.store') }}" method="POST" enctype="multipart/form-data"
+            class="space-y-6">
             @csrf
 
             {{-- STEP 1: INFORMASI ADUAN --}}
@@ -83,40 +98,47 @@
 
                 {{-- Judul Aduan --}}
                 <div class="space-y-1.5">
-                    <label for="title" class="block text-xs font-semibold text-slate-700">
+                    <label for="judul" class="block text-xs font-semibold text-slate-700">
                         Judul Aduan <span class="text-rose-500">*</span>
                     </label>
-                    <input type="text" id="title" name="title" x-model="formData.title"
-                        placeholder="Contoh: Lampu Jalan Rusak di Jl. Pemuda" required
-                        class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 bg-white text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
-                    <p class="text-[11px] text-slate-500">Tuliskan judul ringkas dan jelas yang menggambarkan masalah.
-                    </p>
+                    <input type="text" id="judul" name="judul" value="{{ old('judul') }}" required
+                        placeholder="Contoh: Lampu Jalan Rusak di Jl. Pemuda"
+                        class="w-full px-3.5 py-2.5 text-xs rounded-xl border @error('judul') border-rose-500 @else border-slate-300 @enderror bg-white text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+                    @error('judul')
+                        <p class="text-[11px] text-rose-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
-                {{-- Kategori Aduan --}}
+                {{-- Kategori Aduan (Blade Loop From Database) --}}
                 <div class="space-y-1.5">
-                    <label for="category_id" class="block text-xs font-semibold text-slate-700">
+                    <label for="kategori_id" class="block text-xs font-semibold text-slate-700">
                         Kategori Aduan <span class="text-rose-500">*</span>
                     </label>
-                    <select id="category_id" name="category_id" x-model="formData.category_id" required
-                        class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+                    <select id="kategori_id" name="kategori_id" required
+                        class="w-full px-3.5 py-2.5 text-xs rounded-xl border @error('kategori_id') border-rose-500 @else border-slate-300 @enderror bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                         <option value="">-- Pilih Kategori --</option>
-                        <option value="1">Infrastruktur & Jalan</option>
-                        <option value="2">Kebersihan & Sampah</option>
-                        <option value="3">Ketertiban Umum</option>
-                        <option value="4">Layanan Administrasi Desa</option>
-                        <option value="5">Fasilitas Kesehatan / Umum</option>
+                        @foreach ($kategoriAduan as $kat)
+                            <option value="{{ $kat->id }}" {{ old('kategori_id') == $kat->id ? 'selected' : '' }}>
+                                {{ $kat->nama }}
+                            </option>
+                        @endforeach
                     </select>
+                    @error('kategori_id')
+                        <p class="text-[11px] text-rose-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Deskripsi Aduan --}}
                 <div class="space-y-1.5">
-                    <label for="description" class="block text-xs font-semibold text-slate-700">
+                    <label for="deskripsi" class="block text-xs font-semibold text-slate-700">
                         Deskripsi Lengkap <span class="text-rose-500">*</span>
                     </label>
-                    <textarea id="description" name="description" rows="5" x-model="formData.description"
-                        placeholder="Jelaskan secara detail kronologi atau kondisi permasalahan yang ditemukan..." required
-                        class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 bg-white text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600"></textarea>
+                    <textarea id="deskripsi" name="deskripsi" rows="5" required
+                        placeholder="Jelaskan secara detail kronologi atau kondisi permasalahan yang ditemukan..."
+                        class="w-full px-3.5 py-2.5 text-xs rounded-xl border @error('deskripsi') border-rose-500 @else border-slate-300 @enderror bg-white text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600">{{ old('deskripsi') }}</textarea>
+                    @error('deskripsi')
+                        <p class="text-[11px] text-rose-500">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -136,18 +158,24 @@
                     </button>
                 </div>
 
-                {{-- Dropdown Desa --}}
+                {{-- Pilih Desa (Blade Loop From Database) --}}
                 <div class="space-y-1.5">
                     <label for="desa_id" class="block text-xs font-semibold text-slate-700">
                         Pilih Desa / Wilayah <span class="text-rose-500">*</span>
                     </label>
-                    <select id="desa_id" name="desa_id" x-model="formData.desa_id" required
-                        class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+                    <select id="desa_id" name="desa_id" required
+                        class="w-full px-3.5 py-2.5 text-xs rounded-xl border @error('desa_id') border-rose-500 @else border-slate-300 @enderror bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                         <option value="">-- Pilih Desa --</option>
-                        <option value="1">Desa Sukamaju</option>
-                        <option value="2">Desa Murni Jaya</option>
-                        <option value="3">Desa Margahayu</option>
+                        @foreach ($desas as $desa)
+                            <option value="{{ $desa->id }}"
+                                {{ old('desa_id', auth()->user()->desa_id ?? '') == $desa->id ? 'selected' : '' }}>
+                                {{ $desa->nama_desa ?? $desa->nama }}
+                            </option>
+                        @endforeach
                     </select>
+                    @error('desa_id')
+                        <p class="text-[11px] text-rose-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Map Container --}}
@@ -155,35 +183,40 @@
                     <label class="block text-xs font-semibold text-slate-700">
                         Pilih Titik Lokasi pada Peta <span class="text-rose-500">*</span>
                     </label>
-                    <p class="text-[11px] text-slate-500 mb-2">Klik pada peta di bawah ini untuk menggeser pin lokasi
-                        kejadian.</p>
+                    <p class="text-[11px] text-slate-500 mb-2">Klik peta atau geser pin lokasi kejadian untuk
+                        mendapatkan koordinat presisi.</p>
                     <div id="map" class="w-full h-72 rounded-xl border border-slate-300 overflow-hidden z-0">
                     </div>
                 </div>
 
-                {{-- Hidden Inputs for Latitude & Longitude --}}
+                {{-- Inputs Latitude & Longitude --}}
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="latitude" class="block text-[11px] font-medium text-slate-500">Latitude</label>
-                        <input type="text" id="latitude" name="latitude" x-model="formData.latitude" readonly
+                        <input type="text" id="latitude" name="latitude"
+                            value="{{ old('latitude', '-7.5333') }}" readonly required
                             class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-600 font-mono">
                     </div>
                     <div>
                         <label for="longitude" class="block text-[11px] font-medium text-slate-500">Longitude</label>
-                        <input type="text" id="longitude" name="longitude" x-model="formData.longitude" readonly
+                        <input type="text" id="longitude" name="longitude"
+                            value="{{ old('longitude', '112.5167') }}" readonly required
                             class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-600 font-mono">
                     </div>
                 </div>
 
                 {{-- Detail Alamat Deskriptif --}}
                 <div class="space-y-1.5">
-                    <label for="location_details" class="block text-xs font-semibold text-slate-700">
+                    <label for="detail_lokasi" class="block text-xs font-semibold text-slate-700">
                         Detail Alamat / Patokan <span class="text-rose-500">*</span>
                     </label>
-                    <input type="text" id="location_details" name="location_details"
-                        x-model="formData.location_details"
-                        placeholder="Contoh: Depan Toko Berkah RT 02/RW 04, dekat tiang listrik" required
-                        class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 bg-white text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+                    <input type="text" id="detail_lokasi" name="detail_lokasi"
+                        value="{{ old('detail_lokasi') }}" required
+                        placeholder="Contoh: Depan Toko Berkah RT 02/RW 04, dekat tiang listrik"
+                        class="w-full px-3.5 py-2.5 text-xs rounded-xl border @error('detail_lokasi') border-rose-500 @else border-slate-300 @enderror bg-white text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
+                    @error('detail_lokasi')
+                        <p class="text-[11px] text-rose-500">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -198,15 +231,13 @@
 
                 {{-- Upload Foto --}}
                 <div class="space-y-2">
-                    <label class="block text-xs font-semibold text-slate-700">
-                        Foto Bukti Kejadian <span class="text-rose-500">*</span>
-                    </label>
+                    <label class="block text-xs font-semibold text-slate-700">Foto Bukti Kejadian</label>
 
                     <div class="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center hover:bg-slate-50/50 transition-colors cursor-pointer relative"
                         @click="$refs.photoInput.click()">
-                        <input type="file" id="photo" name="photo" x-ref="photoInput"
-                            accept="image/png, image/jpeg, image/jpg, image/webp" @change="handlePhotoUpload($event)"
-                            class="hidden" required>
+                        <input type="file" id="foto" name="foto" x-ref="photoInput"
+                            accept="image/png, image/jpeg, image/jpg, image/gif" @change="handlePhotoUpload($event)"
+                            class="hidden">
 
                         <template x-if="!photoPreview">
                             <div class="space-y-2">
@@ -218,11 +249,10 @@
                                     <span class="font-medium text-blue-600">Klik untuk mengunggah</span> atau seret
                                     foto ke sini
                                 </div>
-                                <p class="text-[11px] text-slate-400">Format: JPG, PNG, WEBP (Maksimal 5MB)</p>
+                                <p class="text-[11px] text-slate-400">Format: JPG, PNG, GIF (Maksimal 2MB)</p>
                             </div>
                         </template>
 
-                        {{-- Preview Foto --}}
                         <template x-if="photoPreview">
                             <div class="space-y-3">
                                 <img :src="photoPreview"
@@ -236,35 +266,38 @@
                             </div>
                         </template>
                     </div>
+                    @error('foto')
+                        <p class="text-[11px] text-rose-500">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 {{-- Option Anonim --}}
                 <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
                     <div class="flex items-start gap-3">
+                        <input type="hidden" name="is_anonymous" value="0">
                         <input type="checkbox" id="is_anonymous" name="is_anonymous" value="1"
-                            x-model="formData.is_anonymous"
+                            {{ old('is_anonymous') ? 'checked' : '' }}
                             class="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-600">
                         <div>
                             <label for="is_anonymous" class="text-xs font-semibold text-slate-900 cursor-pointer">
                                 Kirim sebagai Laporan Anonim
                             </label>
                             <p class="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-                                Jika diaktifkan, nama Anda tidak akan ditampilkan secara publik pada papan aduan. Namun
-                                petugas tetap dapat memverifikasi identitas Anda secara internal.
+                                Jika diaktifkan, identitas Anda disembunyikan secara publik di portal aduan.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {{-- Konfirmasi Ringkasan Singkat --}}
+                {{-- Pernyataan Kebenaran Data --}}
                 <div class="p-4 rounded-xl border border-blue-100 bg-blue-50/50 space-y-1.5 text-xs">
                     <p class="font-semibold text-blue-900 flex items-center gap-1.5">
                         <i class="fa-solid fa-circle-info text-blue-600" aria-hidden="true"></i>
                         <span>Pernyataan Kebenaran Data</span>
                     </p>
                     <p class="text-blue-800 leading-relaxed">
-                        Dengan mengirimkan laporan ini, Anda menyatakan bahwa informasi yang disampaikan adalah benar
-                        dan bertanggung jawab atas laporan tersebut.
+                        Dengan mengirimkan laporan ini, Anda menyatakan bahwa seluruh data yang disampaikan adalah
+                        benar.
                     </p>
                 </div>
             </div>
@@ -277,7 +310,7 @@
                     <span>Kembali</span>
                 </button>
 
-                <div x-show="step === 1"></div> {{-- Spacer --}}
+                <div x-show="step === 1"></div>
 
                 <button type="button" x-show="step < 3" @click="nextStep()"
                     class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-xs font-medium transition-colors shadow-xs ml-auto">
@@ -296,95 +329,116 @@
 
     </div>
 
-    {{-- Alpine Component Logic --}}
+    {{-- Frontend Wizard UI & Leaflet Map Controller --}}
     <script>
         function createAduanForm() {
             return {
-                step: 1,
-                map: null,
-                marker: null,
+                step: {{ $errors->any() ? ($errors->has('foto') || $errors->has('is_anonymous') ? 3 : ($errors->has('desa_id') || $errors->has('detail_lokasi') || $errors->has('latitude') ? 2 : 1)) : 1 }},
                 photoPreview: null,
                 photoName: '',
-                formData: {
-                    title: '',
-                    category_id: '',
-                    description: '',
-                    desa_id: '',
-                    latitude: '-7.4726', // Default koordinat Mojokerto
-                    longitude: '112.4338',
-                    location_details: '',
-                    is_anonymous: false
+
+                init() {
+                    if (this.step === 2) {
+                        this.$nextTick(() => this.initMap());
+                    }
                 },
 
                 initMap() {
-                    if (this.map) return;
+                    const latInput = document.getElementById('latitude');
+                    const lngInput = document.getElementById('longitude');
 
-                    // Delay sedikit agar container DOM ter-render dengan sempurna oleh Alpine
+                    // Koordinat Default Pusat Kecamatan Kutorejo, Mojokerto
+                    const defaultLat = -7.5333;
+                    const defaultLng = 112.5167;
+
+                    const startLat = parseFloat(latInput.value) || defaultLat;
+                    const startLng = parseFloat(lngInput.value) || defaultLng;
+
+                    // Reset Map Instance jika sudah ada
+                    if (window.leafletMap) {
+                        window.leafletMap.remove();
+                        window.leafletMap = null;
+                        window.leafletMarker = null;
+                    }
+
+                    const map = L.map('map').setView([startLat, startLng], 14);
+                    window.leafletMap = map;
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(map);
+
+                    // Buat Marker Tunggal
+                    const marker = L.marker([startLat, startLng], {
+                        draggable: true
+                    }).addTo(map);
+                    window.leafletMarker = marker;
+
+                    const updateCoords = (lat, lng) => {
+                        latInput.value = lat.toFixed(6);
+                        lngInput.value = lng.toFixed(6);
+                    };
+
+                    // Inisialisasi awal nilai input jika masih kosong
+                    if (!latInput.value || !lngInput.value) {
+                        updateCoords(startLat, startLng);
+                    }
+
+                    // Event Drag Marker
+                    marker.on('dragend', (e) => {
+                        const pos = e.target.getLatLng();
+                        updateCoords(pos.lat, pos.lng);
+                    });
+
+                    // Event Klik Peta
+                    map.on('click', (e) => {
+                        marker.setLatLng(e.latlng);
+                        updateCoords(e.latlng.lat, e.latlng.lng);
+                    });
+
                     setTimeout(() => {
-                        const defaultLat = parseFloat(this.formData.latitude);
-                        const defaultLng = parseFloat(this.formData.longitude);
-
-                        this.map = L.map('map').setView([defaultLat, defaultLng], 13);
-
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            maxZoom: 19,
-                            attribution: '© OpenStreetMap'
-                        }).addTo(this.map);
-
-                        this.marker = L.marker([defaultLat, defaultLng], {
-                            draggable: true
-                        }).addTo(this.map);
-
-                        // Update koordinat saat marker digeser
-                        this.marker.on('dragend', (e) => {
-                            const position = e.target.getLatLng();
-                            this.formData.latitude = position.lat.toFixed(6);
-                            this.formData.longitude = position.lng.toFixed(6);
-                        });
-
-                        // Update marker saat peta diklik
-                        this.map.on('click', (e) => {
-                            const {
-                                lat,
-                                lng
-                            } = e.latlng;
-                            this.marker.setLatLng([lat, lng]);
-                            this.formData.latitude = lat.toFixed(6);
-                            this.formData.longitude = lng.toFixed(6);
-                        });
-                    }, 200);
+                        map.invalidateSize();
+                    }, 300);
                 },
 
                 getCurrentLocation() {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                                const lat = position.coords.latitude;
-                                const lng = position.coords.longitude;
-                                this.formData.latitude = lat.toFixed(6);
-                                this.formData.longitude = lng.toFixed(6);
-
-                                if (this.map && this.marker) {
-                                    this.map.setView([lat, lng], 16);
-                                    this.marker.setLatLng([lat, lng]);
-                                }
-                            },
-                            (error) => {
-                                alert('Gagal mengambil lokasi. Pastikan izin lokasi diaktifkan pada browser Anda.');
-                            }
-                        );
-                    } else {
-                        alert('Browser Anda tidak mendukung Geolocation.');
+                    if (!navigator.geolocation) {
+                        alert('Browser Anda tidak mendukung fitur Geolocation.');
+                        return;
                     }
+
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+
+                            // Update value input HTML
+                            document.getElementById('latitude').value = lat.toFixed(6);
+                            document.getElementById('longitude').value = lng.toFixed(6);
+
+                            if (window.leafletMap && window.leafletMarker) {
+                                // Pindahkan marker yang sudah ada (bukan membuat marker baru)
+                                window.leafletMarker.setLatLng([lat, lng]);
+                                window.leafletMap.setView([lat, lng], 17);
+                            }
+                        },
+                        (error) => {
+                            alert(
+                                'Gagal mendapatkan lokasi. Pastikan izin lokasi (GPS) pada browser sudah diaktifkan.'
+                                );
+                        }, {
+                            enableHighAccuracy: true
+                        }
+                    );
                 },
 
                 handlePhotoUpload(event) {
                     const file = event.target.files[0];
                     if (!file) return;
 
-                    // Validasi Ukuran (Max 5MB)
-                    if (file.size > 5 * 1024 * 1024) {
-                        alert('Ukuran file foto maksimal adalah 5MB.');
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('Ukuran file foto maksimal adalah 2MB.');
                         event.target.value = '';
                         return;
                     }
@@ -407,14 +461,21 @@
 
                 nextStep() {
                     if (this.step === 1) {
-                        if (!this.formData.title || !this.formData.category_id || !this.formData.description) {
-                            alert('Mohon lengkapi semua kolom wajib di Langkah 1.');
+                        const judul = document.getElementById('judul').value;
+                        const kategori = document.getElementById('kategori_id').value;
+                        const deskripsi = document.getElementById('deskripsi').value;
+
+                        if (!judul || !kategori || !deskripsi) {
+                            alert('Mohon isi semua bidang wajib di Langkah 1.');
                             return;
                         }
                         this.step = 2;
-                        this.initMap();
+                        this.$nextTick(() => this.initMap());
                     } else if (this.step === 2) {
-                        if (!this.formData.desa_id || !this.formData.location_details) {
+                        const desa = document.getElementById('desa_id').value;
+                        const detail = document.getElementById('detail_lokasi').value;
+
+                        if (!desa || !detail) {
                             alert('Mohon pilih Desa dan isi Detail Alamat.');
                             return;
                         }
@@ -423,9 +484,7 @@
                 },
 
                 prevStep() {
-                    if (this.step > 1) {
-                        this.step--;
-                    }
+                    if (this.step > 1) this.step--;
                 },
 
                 goToStep(targetStep) {

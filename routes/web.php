@@ -45,4 +45,5 @@ Route::middleware('warga')->prefix('warga')->name('warga.')->group(function () {
     Route::get('dashboard', [WargaDashboardController::class, 'index'])->name('dashboard');
     Route::get('pengaduan/buat', [PengaduanController::class, 'create'])->name('pengaduan.create');
     Route::post('pengaduan/buat', [PengaduanController::class, 'store'])->name('pengaduan.store');
+    Route::get('pengaduan/detail/{id}', [PengaduanController::class, 'show'])->name('pengaduan.show');
 });
