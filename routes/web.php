@@ -1,12 +1,12 @@
 <?php
 
+use App\Http\Controllers\Admin\AduanController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DesaController;
 use App\Http\Controllers\Admin\KategoriAduanController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Warga\AduanController;
 use App\Http\Controllers\Warga\DashboardController as WargaDashboardController;
 use App\Http\Controllers\Warga\PengaduanController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +33,9 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     // MasterKategoriAduan
     Route::resource('kategori/aduan', KategoriAduanController::class)->names('kategori.aduan');
     Route::patch('kategori/aduan/{id}/status', [KategoriAduanController::class, 'toggleStatus'])->name('kategori.aduan.status');
+    // MasterAduan
+    Route::resource('aduan', AduanController::class);
+    Route::post('aduan/{id}/tanggapan', [AduanController::class, 'storeTanggapan'])->name('aduan.tanggapan.store');
     // Profile
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');

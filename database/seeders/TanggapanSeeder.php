@@ -42,5 +42,19 @@ class TanggapanSeeder extends Seeder
             // Update status aduan agar sinkron dengan tanggapan terakhir
             $aduan->update(['status' => 'Selesai']);
         }
+
+        // Get second aduan
+        $aduan2 = Aduan::find(2);
+        if ($aduan2 && $petugas) {
+            // Update second aduan status to Diproses
+            Tanggapan::create([
+                'aduan_id' => $aduan2->id,
+                'user_id' => $petugas->id,
+                'tanggapan' => 'Laporan sampah menumpuk telah diterima dan akan segera ditindaklanjuti oleh tim kebersihan.',
+                'status_sebelumnya' => 'Menunggu',
+                'status_setelahnya' => 'Diproses',
+            ]);
+            $aduan2->update(['status' => 'Diproses']);
+        }
     }
 }
