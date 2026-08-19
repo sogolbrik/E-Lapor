@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\KategoriAduanController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Petugas\AduanController as PetugasAduanController;
+use App\Http\Controllers\Petugas\DashboardController as PetugasDashboardController;
 use App\Http\Controllers\Warga\DashboardController as WargaDashboardController;
 use App\Http\Controllers\Warga\PengaduanController;
 use Illuminate\Support\Facades\Route;
@@ -45,8 +47,20 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
 
 // Warga Page
 Route::middleware('warga')->prefix('warga')->name('warga.')->group(function () {
+    //Dashboard
     Route::get('dashboard', [WargaDashboardController::class, 'index'])->name('dashboard');
+    // Pengaduan Warga
     Route::get('pengaduan/buat', [PengaduanController::class, 'create'])->name('pengaduan.create');
     Route::post('pengaduan/buat', [PengaduanController::class, 'store'])->name('pengaduan.store');
     Route::get('pengaduan/detail/{id}', [PengaduanController::class, 'show'])->name('pengaduan.show');
+});
+
+// Petugas Page
+Route::middleware('petugas')->prefix('petugas')->name('petugas.')->group(function () {
+    // Dashboard
+    Route::get('dashboard', [PetugasDashboardController::class, 'index'])->name('dashboard');
+    // Aduan
+    Route::get('aduan', [PetugasAduanController::class, 'index'])->name('aduan.index');
+    Route::get('aduan/{id}', [PetugasAduanController::class, 'show'])->name('aduan.show');
+    Route::post('aduan/{id}/tanggapan', [PetugasAduanController::class, 'storeTanggapan'])->name('aduan.tanggapan.store');
 });

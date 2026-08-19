@@ -85,8 +85,8 @@ class AuthController extends Controller
             $redirectRoute = '/';
             if ($user->role === 'Admin') {
                 $redirectRoute = '/admin/dashboard';
-                // } elseif ($user->role === 'Petugas') {
-                //     $redirectRoute = '/b';
+                } elseif ($user->role === 'Petugas') {
+                    $redirectRoute = '/petugas/dashboard';
             } elseif ($user->role === 'Warga') {
                 $redirectRoute = '/warga/dashboard';
             }

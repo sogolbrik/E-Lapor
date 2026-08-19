@@ -132,43 +132,35 @@
                     </div>
                 </div>
 
-                {{-- Hasil Penanganan / Foto Bukti Selesai (Jika Status Selesai) --}}
-                @if ($aduan->status === 'Selesai')
-                    <div class="bg-emerald-50/50 border border-emerald-200/80 rounded-2xl p-6 shadow-xs space-y-4">
-                        <div class="flex items-center gap-2 text-emerald-800 border-b border-emerald-200/60 pb-3">
-                            <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
-                            <h3 class="text-base font-bold">Bukti Pengerjaan / Tindak Lanjut</h3>
+                {{-- Hasil Penanganan / Foto Bukti (Tampil untuk semua status jika ada foto bukti) --}}
+                @php
+                    // Cari tanggapan terbaru yang memiliki foto bukti
+                    $tanggapanBerfoto = $aduan->tanggapan->whereNotNull('foto_bukti')->last();
+                @endphp
+
+                @if ($tanggapanBerfoto)
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+                        <div class="flex items-center gap-2 text-slate-800 border-b border-slate-100 pb-3">
+                            <i class="fa-solid fa-image text-blue-600 text-lg"></i>
+                            <h3 class="text-base font-bold">Bukti Tindak Lanjut / Penanganan</h3>
                         </div>
 
-                        {{-- Ambil tanggapan terakhir atau foto penanganan --}}
-                        @php
-                            $tanggapanSelesai = $aduan->tanggapan->last();
-                        @endphp
+                        <div class="space-y-3">
+                            <p class="text-xs text-slate-700 leading-relaxed">
+                                <strong>Catatan Petugas:</strong>
+                                {{ $tanggapanBerfoto->tanggapan ?? 'Tidak ada catatan lampiran.' }}
+                            </p>
 
-                        @if ($tanggapanSelesai)
-                            <div class="space-y-3">
-                                <p class="text-xs text-slate-700 leading-relaxed">
-                                    <strong>Catatan Petugas:</strong>
-                                    {{ $tanggapanSelesai->tanggapan ?? 'Laporan telah selesai ditindaklanjuti oleh tim terkait.' }}
-                                </p>
-
-                                @if (isset($tanggapanSelesai->foto_bukti))
-                                    <div class="space-y-1.5">
-                                        <span class="text-[11px] font-bold text-emerald-900 uppercase">Foto Hasil
-                                            Pengerjaan:</span>
-                                        <a href="{{ asset('storage/' . $tanggapanSelesai->foto_bukti) }}"
-                                            target="_blank"
-                                            class="block group relative overflow-hidden rounded-xl border border-emerald-200 bg-white">
-                                            <img src="{{ asset('storage/' . $tanggapanSelesai->foto_bukti) }}"
-                                                alt="Foto Bukti Selesai" class="w-full max-h-72 object-cover">
-                                        </a>
-                                    </div>
-                                @endif
+                            <div class="space-y-1.5">
+                                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Foto
+                                    Lampiran:</span>
+                                <a href="{{ asset('storage/' . $tanggapanBerfoto->foto_bukti) }}" target="_blank"
+                                    class="block group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50 hover:opacity-95 transition">
+                                    <img src="{{ asset('storage/' . $tanggapanBerfoto->foto_bukti) }}"
+                                        alt="Foto Bukti Petugas" class="w-full max-h-72 object-cover">
+                                </a>
                             </div>
-                        @else
-                            <p class="text-xs text-slate-600 italic">Pekerjaan telah diselesaikan oleh petugas teknis
-                                lapangan.</p>
-                        @endif
+                        </div>
                     </div>
                 @endif
 
@@ -236,8 +228,7 @@
                                 </span>
                                 <div class="space-y-0.5">
                                     <h4 class="text-xs font-bold text-slate-800">Menunggu Verifikasi Petugas</h4>
-                                    <p class="text-[11px] text-slate-500">Laporan sedang ditinjau oleh pihak Kecamatan
-                                        Kutorejo.</p>
+                                    <p class="text-[11px] text-slate-500">Laporan sedang ditinjau oleh pihak Desa/Kecamatan.</p>
                                 </div>
                             </div>
                         @endif

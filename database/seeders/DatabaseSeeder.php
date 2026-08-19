@@ -19,8 +19,8 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             DesaSeeder::class,
             KategoriAduanSeeder::class,
-            AduanSeeder::class,
-            TanggapanSeeder::class,
+            // AduanSeeder::class,
+            // TanggapanSeeder::class,
         ]);
     }
 }

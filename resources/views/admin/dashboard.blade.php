@@ -1,4 +1,4 @@
-<x-admin-layout title="Dashboard">
+<x-admin-layout title="Dashboard Admin">
 
     {{-- Page Header --}}
     <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

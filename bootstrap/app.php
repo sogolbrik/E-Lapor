@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\PetugasMiddleware;
 use App\Http\Middleware\WargaMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => AdminMiddleware::class,
             'warga' => WargaMiddleware::class,
+            'petugas' => PetugasMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

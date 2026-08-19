@@ -13,7 +13,7 @@ class PengaduanController extends Controller
 {
     public function create()
     {
-        return view("warga.create", [
+        return view("warga.aduan.create", [
             'kategoriAduan' => KategoriAduan::where('is_active', true)->get(),
             'desas' => Desa::all(),
         ]);
@@ -74,6 +74,6 @@ class PengaduanController extends Controller
             ->where('user_id', Auth::id())
             ->findOrFail($id);
 
-        return view("warga.show", compact('aduan'));
+        return view("warga.aduan.show", compact('aduan'));
     }
 }

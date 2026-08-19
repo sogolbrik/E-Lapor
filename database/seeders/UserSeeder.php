@@ -28,6 +28,7 @@ class UserSeeder extends Seeder
         // Create Petugas (Officer) user
         User::create([
             'nik' => '1234567890123457',
+            'desa_id' => 7,
             'name' => 'Community Officer',
             'email' => 'petugas@gmail.com',
             'email_verified_at' => now(),
@@ -40,6 +41,7 @@ class UserSeeder extends Seeder
         // Create Warga (Resident) user
         User::create([
             'nik' => '1234567890123458',
+            'desa_id' => 7,
             'name' => 'Regular Resident',
             'email' => 'warga@gmail.com',
             'email_verified_at' => now(),
