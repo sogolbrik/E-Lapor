@@ -13,11 +13,11 @@ use App\Http\Controllers\Petugas\ProfileController as PetugasProfileController;
 use App\Http\Controllers\Warga\DashboardController as WargaDashboardController;
 use App\Http\Controllers\Warga\PengaduanController;
 use App\Http\Controllers\Warga\ProfileController as WargaProfileController;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+// Landing Page
+Route::get('/', [WelcomeController::class,'index'])->name('home');
 
 // Authentication
 Route::get('login', [AuthController::class, 'login'])->name('login');
