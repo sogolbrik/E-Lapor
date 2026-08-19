@@ -56,11 +56,11 @@
                         Dashboard
                     </a>
 
-                    <a href="#"
+                    {{-- <a href="#"
                         class="px-3.5 py-2 rounded-lg text-sm font-medium transition-colors duration-150 {{ request()->routeIs('warga.aduan.*') && !request()->routeIs('warga.pengaduan.create') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' }}">
                         <i class="fa-solid fa-list-check mr-1.5 text-xs" aria-hidden="true"></i>
                         Aduan Saya
-                    </a>
+                    </a> --}}
 
                     <a href="{{ route('warga.pengaduan.create') }}"
                         class="inline-flex items-center justify-center ml-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors duration-150 shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:ring-offset-2">
@@ -78,10 +78,18 @@
                         <button @click="userDropdownOpen = !userDropdownOpen" type="button"
                             class="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-100 transition-colors duration-150 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
                             aria-expanded="false" :aria-expanded="userDropdownOpen" aria-label="Menu Pengguna">
-                            <div
-                                class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-semibold flex items-center justify-center text-sm border border-blue-200">
-                                {{ strtoupper(substr(auth()->user()->name ?? 'W', 0, 1)) }}
-                            </div>
+                            @php
+                                $user = auth()->user();
+                            @endphp
+                            @if ($user && $user->avatar)
+                                <img src="{{ Storage::url($user->avatar) }}"
+                                    class="w-8 h-8 rounded-full object-cover border border-blue-200" alt="Avatar">
+                            @else
+                                <div
+                                    class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-semibold flex items-center justify-center text-sm border border-blue-200">
+                                    {{ strtoupper(substr(auth()->user()->name ?? 'W', 0, 1)) }}
+                                </div>
+                            @endif
                             <span class="text-sm font-medium text-slate-700 max-w-30 truncate">
                                 {{ auth()->user()->name ?? 'Warga' }}
                             </span>
@@ -104,7 +112,7 @@
                                     {{ auth()->user()->email ?? 'warga@desa.id' }}</p>
                             </div>
 
-                            <a href="#"
+                            <a href="{{ route('warga.profile.edit') }}"
                                 class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
                                 <i class="fa-solid fa-user w-5 text-slate-400 text-xs mr-2" aria-hidden="true"></i>
                                 Profil Saya
@@ -149,11 +157,11 @@
                 Dashboard
             </a>
 
-            <a href="#"
+            {{-- <a href="#"
                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('warga.aduan.*') && !request()->routeIs('warga.pengaduan.create') ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100' }}">
                 <i class="fa-solid fa-list-check w-5 text-center text-xs" aria-hidden="true"></i>
                 Aduan Saya
-            </a>
+            </a> --}}
 
             <a href="{{ route('warga.pengaduan.create') }}"
                 class="flex items-center justify-center gap-2 w-full px-4 py-2.5 my-1 rounded-xl bg-blue-600 text-white text-sm font-medium shadow-xs">
@@ -162,7 +170,7 @@
             </a>
 
             <div class="border-t border-slate-200 my-2 pt-2">
-                <a href="#"
+                <a href="{{ route('warga.profile.edit') }}"
                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">
                     <i class="fa-solid fa-user w-5 text-center text-xs text-slate-400" aria-hidden="true"></i>
                     Profil Saya

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Warga;
 
 use App\Http\Controllers\Controller;
 use App\Models\Desa;
@@ -9,11 +9,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
-    /**
+        /**
      * Display the specified resource / profile form.
      */
     public function edit()
@@ -21,7 +20,7 @@ class ProfileController extends Controller
         $user = Auth::user();
         $desa = Desa::all();
 
-        return view('admin.profile.edit', compact('user', 'desa'));
+        return view('warga.profile.edit', compact('user', 'desa'));
     }
 
     /**
@@ -57,7 +56,7 @@ class ProfileController extends Controller
             'avatar.mimes' => 'Avatar harus berformat: jpeg, png, jpg, webp.',
             'avatar.max' => 'Ukuran avatar tidak boleh lebih dari 2MB.',
         ]);
-        
+
         // Handling Upload Avatar
         if ($request->hasFile('avatar')) {
             $user = Auth::user();
@@ -71,7 +70,7 @@ class ProfileController extends Controller
 
         User::where('id', $userId)->update($validate);
 
-        return redirect()->route('admin.profile.edit')->with('success', 'Profil berhasil diperbarui.');
+        return redirect()->route('warga.profile.edit')->with('success', 'Profil berhasil diperbarui.');
     }
 
     /**
@@ -95,7 +94,7 @@ class ProfileController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        return redirect()->route('admin.profile.edit')->with('success', 'Password berhasil diubah.');
+        return redirect()->route('warga.profile.edit')->with('success', 'Password berhasil diubah.');
     }
 
     /**

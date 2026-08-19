@@ -9,8 +9,10 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Petugas\AduanController as PetugasAduanController;
 use App\Http\Controllers\Petugas\DashboardController as PetugasDashboardController;
+use App\Http\Controllers\Petugas\ProfileController as PetugasProfileController;
 use App\Http\Controllers\Warga\DashboardController as WargaDashboardController;
 use App\Http\Controllers\Warga\PengaduanController;
+use App\Http\Controllers\Warga\ProfileController as WargaProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -53,6 +55,11 @@ Route::middleware('warga')->prefix('warga')->name('warga.')->group(function () {
     Route::get('pengaduan/buat', [PengaduanController::class, 'create'])->name('pengaduan.create');
     Route::post('pengaduan/buat', [PengaduanController::class, 'store'])->name('pengaduan.store');
     Route::get('pengaduan/detail/{id}', [PengaduanController::class, 'show'])->name('pengaduan.show');
+        // Profile
+    Route::get('profile', [WargaProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('profile', [WargaProfileController::class, 'update'])->name('profile.update');
+    Route::put('profile/password', [WargaProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::delete('profile', [WargaProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 // Petugas Page
@@ -63,4 +70,9 @@ Route::middleware('petugas')->prefix('petugas')->name('petugas.')->group(functio
     Route::get('aduan', [PetugasAduanController::class, 'index'])->name('aduan.index');
     Route::get('aduan/{id}', [PetugasAduanController::class, 'show'])->name('aduan.show');
     Route::post('aduan/{id}/tanggapan', [PetugasAduanController::class, 'storeTanggapan'])->name('aduan.tanggapan.store');
+    // Profile
+    Route::get('profile', [PetugasProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('profile', [PetugasProfileController::class, 'update'])->name('profile.update');
+    Route::put('profile/password', [PetugasProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::delete('profile', [PetugasProfileController::class, 'destroy'])->name('profile.destroy');
 });

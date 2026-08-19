@@ -97,7 +97,7 @@
 
                     <div class="space-y-1">
                         {{-- Profil Petugas --}}
-                        <a href="#"
+                        <a href="{{ route('petugas.profile.edit') }}"
                             class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition {{ request()->routeIs('petugas.profile.*') ? 'bg-blue-50 text-blue-600 shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
                             <i
                                 class="fa-solid fa-user-gear text-sm w-5 text-center {{ request()->routeIs('petugas.profile.*') ? 'text-blue-600' : 'text-slate-400' }}"></i>
@@ -152,7 +152,7 @@
                         <button type="button" @click="open = !open"
                             class="flex items-center gap-3 rounded-xl p-1.5 hover:bg-slate-50 transition focus:outline-none">
                             <img class="h-8 w-8 rounded-xl object-cover ring-2 ring-slate-100"
-                                src="{{ auth()->user()->avatar ? asset('storage/' . auth()->user()->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode(auth()->user()->name ?? 'Petugas') . '&background=2563eb&color=fff' }}"
+                                src="{{ auth()->user()->avatar ? Storage::url(auth()->user()->avatar) : 'https://ui-avatars.com/api/?name=' . strtoupper(substr(auth()->user()->name ?? 'P', 0, 2)) . '&background=2563eb&color=fff' }}"
                                 alt="User Avatar">
                             <div class="hidden text-left sm:block">
                                 <span class="block text-xs font-bold text-slate-700 leading-tight">
@@ -175,7 +175,7 @@
                             x-transition:leave-end="transform opacity-0 scale-95"
                             class="absolute right-0 mt-2 w-48 rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-slate-200/60 z-50">
 
-                            <a href="#"
+                            <a href="{{ route('petugas.profile.edit') }}"
                                 class="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition">
                                 <i class="fa-solid fa-user-gear w-4 text-center"></i>
                                 <span>Profil Saya</span>
